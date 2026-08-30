@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { transcribeAudio, mimeFromAudioName } from '../services/speech.service';
+import {
+  transcribeAudio,
+  mimeFromAudioName,
+  SpeechServiceError,
+} from '../services/speech.service';
 import type { SpeechInput } from '../services/speech.service';
 
 const router = Router();
@@ -38,6 +42,10 @@ router.post('/api/speech/transcribe', audioUpload.single('audio'), (req, res) =>
       res.json({ success: true, data: { transcript: text } });
     } catch (error) {
       console.error('transcribe error:', error);
+      if (error instanceof SpeechServiceError) {
+        res.status(error.status).json({ success: false, message: error.message });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: error instanceof Error ? error.message : 'Transcription failed',
