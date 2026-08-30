@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,6 +6,8 @@ import PrimaryButton from '@/components/PrimaryButton';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, radius, shadow } from '@/constants/colors';
 import { DELIVERY_LOCATIONS, PRICE_BREAKDOWN, SELLING_SCOPES } from '@/constants/mockData';
+import { useProductAnalysis } from '@/context/ProductAnalysisContext';
+import { formatPrice } from '@/context/productFlow';
 import type { DeliveryLocation, SellingScope } from '@/types/product';
 
 const statusColor = (s: DeliveryLocation['status']): string =>
@@ -13,9 +15,50 @@ const statusColor = (s: DeliveryLocation['status']): string =>
 
 export default function RecommendationScreen() {
   const insets = useSafeAreaInsets();
+  const { currentProduct, updateProduct } = useProductAnalysis();
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [scope, setScope] = useState<SellingScope>('states');
-  const [price, setPrice] = useState('649');
+  const [priceText, setPriceText] = useState<string>(() =>
+    currentProduct?.price != null ? String(currentProduct.price) : ''
+  );
+
+  useEffect(() => {
+    const next = currentProduct?.price != null ? String(currentProduct.price) : '';
+    setPriceText((prev) => (prev === next ? prev : next));
+  }, [currentProduct?.price]);
+
+  if (!currentProduct) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ScreenHeader
+          title="Price & Selling"
+          subtitle="Step 3 of 3"
+          stepIndex={3}
+          totalSteps={3}
+          backTo="/product-studio"
+        />
+        <View style={[styles.empty, { paddingBottom: insets.bottom + 16 }]}>
+          <Text style={styles.emptyEmoji}>🤔</Text>
+          <Text style={styles.emptyTitle}>कोई प्रोडक्ट नहीं मिला</Text>
+          <Text style={styles.emptySub}>पहले AI analysis करके कोई प्रोडक्ट तैयार करें।</Text>
+          <PrimaryButton
+            icon="📸"
+            label="नया प्रोडक्ट जोड़ें"
+            large
+            onPress={() => router.replace('/add-product')}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  const priceDisplay = formatPrice(currentProduct.price);
+
+  const onPriceChange = (text: string) => {
+    const clean = text.replace(/[^0-9]/g, '');
+    setPriceText(clean);
+    updateProduct({ price: clean ? Number(clean) : null });
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -43,7 +86,7 @@ export default function RecommendationScreen() {
 
           <View style={styles.hero}>
             <Text style={styles.heroLabel}>Suggested Price</Text>
-            <Text style={styles.heroPrice}>₹{price}</Text>
+            <Text style={styles.heroPrice}>{priceDisplay}</Text>
             <Text style={styles.heroRange}>Market range: ₹550 – ₹750</Text>
           </View>
 
@@ -53,8 +96,8 @@ export default function RecommendationScreen() {
               <Text style={styles.priceInputCurrency}>₹</Text>
               <TextInput
                 style={styles.priceInput}
-                value={price}
-                onChangeText={setPrice}
+                value={priceText}
+                onChangeText={onPriceChange}
                 keyboardType="number-pad"
                 placeholderTextColor={colors.inkMuted}
               />
@@ -90,7 +133,7 @@ export default function RecommendationScreen() {
               ))}
               <View style={styles.breakdownTotalRow}>
                 <Text style={styles.breakdownTotalLabel}>कुल price</Text>
-                <Text style={styles.breakdownTotalAmount}>₹{price}</Text>
+                <Text style={styles.breakdownTotalAmount}>{priceDisplay}</Text>
               </View>
             </View>
           )}
@@ -437,5 +480,29 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.cream,
+  },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    gap: 10,
+  },
+  emptyEmoji: {
+    fontSize: 44,
+    marginBottom: 4,
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  emptySub: {
+    color: colors.inkMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 8,
   },
 });

@@ -1,9 +1,10 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { ProductAnalysisProvider } from '@/context/ProductAnalysisContext';
 
 export default function RootLayout() {
   return (
-    <>
+    <ProductAnalysisProvider>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         <Stack.Screen name="(tabs)" />
@@ -14,6 +15,6 @@ export default function RootLayout() {
         <Stack.Screen name="review" />
         <Stack.Screen name="success" />
       </Stack>
-    </>
+    </ProductAnalysisProvider>
   );
 }

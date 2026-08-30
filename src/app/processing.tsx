@@ -1,15 +1,36 @@
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Image, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProcessingStep from '@/components/ProcessingStep';
 import { colors, radius, shadow } from '@/constants/colors';
-import { CURRENT_PRODUCT, PROCESSING_STEPS } from '@/constants/mockData';
+import { PROCESSING_STEPS } from '@/constants/mockData';
+import { analyzeProduct } from '@/services/api';
+import { useProductAnalysis } from '@/context/ProductAnalysisContext';
+
+type ApiState = 'loading' | 'done' | 'error';
 
 export default function ProcessingScreen() {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{
+    imageUri?: string;
+    imageName?: string;
+    imageType?: string;
+    transcript?: string;
+    language?: string;
+  }>();
+  const { setProduct } = useProductAnalysis();
+
+  const imageUri = params.imageUri != null ? String(params.imageUri) : '';
+  const imageName = params.imageName != null ? String(params.imageName) : undefined;
+  const imageType = params.imageType != null ? String(params.imageType) : undefined;
+  const transcript = String(params.transcript ?? '');
+  const language = String(params.language ?? 'हिंदी');
+
   const [done, setDone] = useState(0);
+  const [apiState, setApiState] = useState<ApiState>('loading');
+  const [apiError, setApiError] = useState('');
   const progress = useRef(new Animated.Value(0)).current;
 
   const total = PROCESSING_STEPS.length;
@@ -29,8 +50,46 @@ export default function ProcessingScreen() {
     };
   }, [progress, total]);
 
-  const pct = Math.round((done / total) * 100);
+  const runAnalysis = useCallback(async () => {
+    setApiState('loading');
+    setApiError('');
+    if (!imageUri || !transcript.trim()) {
+      setApiError('प्रोडक्ट का विवरण गायब है। वापस जाकर फोटो और विवरण दोबारा भेजें।');
+      setApiState('error');
+      return;
+    }
+    try {
+      const result = await analyzeProduct({
+        image: { uri: imageUri, fileName: imageName, mimeType: imageType },
+        transcript: transcript.trim(),
+        language,
+      });
+      console.log('[FLOW DEBUG] 1. API response received -> product:', result.product?.name ?? 'undefined', '| price:', result.product?.price ?? null, '| ready:', result.ready);
+      const product = result.product;
+      console.log('[FLOW DEBUG] 2. product passed into setProduct ->', product?.name ?? 'undefined');
+      setProduct(product, imageUri);
+      setApiState('done');
+    } catch (err) {
+      console.log('[FLOW DEBUG] 1b. API FAILED ->', err instanceof Error ? err.message : err);
+      setApiError(err instanceof Error ? err.message : 'कुछ गलत हो गया। कृपया फिर कोशिश करें।');
+      setApiState('error');
+    }
+  }, [imageUri, imageName, imageType, transcript, language, setProduct]);
+
+  useEffect(() => {
+    runAnalysis();
+  }, [runAnalysis]);
+
   const complete = done >= total;
+
+  useEffect(() => {
+    if (complete && apiState === 'done') {
+      const t = setTimeout(() => router.replace('/product-studio'), 600);
+      return () => clearTimeout(t);
+    }
+  }, [complete, apiState]);
+
+  const pct = Math.round((done / total) * 100);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -39,7 +98,11 @@ export default function ProcessingScreen() {
       <View style={styles.content}>
         {/* Product image with overlay */}
         <View style={styles.imageCard}>
-          <Image source={{ uri: CURRENT_PRODUCT.img }} style={styles.image} resizeMode="cover" />
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+          ) : (
+            <View style={[styles.image, styles.imagePlaceholder]} />
+          )}
           <View style={styles.imageOverlay} />
 
           <View style={styles.aiBadge}>
@@ -83,15 +146,29 @@ export default function ProcessingScreen() {
         </View>
       </View>
 
-      {complete && (
+      {apiState === 'error' ? (
         <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-          <PrimaryButton
-            icon="👁️"
-            label="प्रोडक्ट देखें"
-            large
-            onPress={() => router.replace('/product-studio')}
-          />
+          <View style={styles.errorCard}>
+            <Text style={styles.errorEmoji}>⚠️</Text>
+            <Text style={styles.errorTitle}>प्रोडक्ट तैयार नहीं हो सका</Text>
+            <Text style={styles.errorText}>{apiError}</Text>
+            <PrimaryButton icon="🔁" label="फिर कोशिश करें" large onPress={runAnalysis} />
+            <Pressable style={({ pressed }) => [styles.backBtn, pressed && styles.backBtnPressed]} onPress={() => router.back()}>
+              <Text style={styles.backBtnText}>← वापस जाएं</Text>
+            </Pressable>
+          </View>
         </View>
+      ) : (
+        complete && apiState === 'done' && (
+          <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+            <PrimaryButton
+              icon="👁️"
+              label="प्रोडक्ट देखें"
+              large
+              onPress={() => router.replace('/product-studio')}
+            />
+          </View>
+        )
       )}
     </View>
   );
@@ -119,6 +196,9 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: 220,
+  },
+  imagePlaceholder: {
+    backgroundColor: colors.surface,
   },
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -194,5 +274,39 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.cream,
+  },
+  errorCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    padding: 20,
+    gap: 12,
+    alignItems: 'center',
+    ...shadow.card,
+  },
+  errorEmoji: {
+    fontSize: 28,
+  },
+  errorTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  errorText: {
+    color: colors.inkMuted,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  backBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  backBtnPressed: {
+    opacity: 0.6,
+  },
+  backBtnText: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

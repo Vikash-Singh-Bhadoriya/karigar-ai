@@ -1,18 +1,74 @@
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PrimaryButton from '@/components/PrimaryButton';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, radius, shadow } from '@/constants/colors';
-import { CURRENT_PRODUCT, IMAGES, LANGUAGES } from '@/constants/mockData';
+import { LANGUAGES } from '@/constants/mockData';
 import type { Language } from '@/types/product';
+
+interface PickedPhoto {
+  uri: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+}
 
 export default function AddProductScreen() {
   const insets = useSafeAreaInsets();
   const [selectedLang, setSelectedLang] = useState<Language>('हिंदी');
   const [isRecording, setIsRecording] = useState(false);
-  const [photoTaken, setPhotoTaken] = useState(false);
+  const [photo, setPhoto] = useState<PickedPhoto | null>(null);
+  const [transcript, setTranscript] = useState('');
+  const photoTaken = photo !== null;
+
+  const pickPhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('अनुमति आवश्यक', 'फोटो चुनने के लिए गैलरी की अनुमति चाहिए।');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets.length) return;
+    const asset = result.assets[0];
+    setPhoto({ uri: asset.uri, fileName: asset.fileName, mimeType: asset.mimeType });
+  };
+
+  const handleSubmit = () => {
+    if (!photo) {
+      Alert.alert('फोटो चुनें', 'पहले प्रोडक्ट की फोटो चुनें।');
+      return;
+    }
+    if (!transcript.trim()) {
+      Alert.alert('विवरण लिखें', 'प्रोडक्ट का विवरण लिखें, जैसे: "यह कॉटन बैग है, कीमत ₹600 रखना है"।');
+      return;
+    }
+    router.push({
+      pathname: '/processing',
+      params: {
+        imageUri: photo.uri,
+        imageName: photo.fileName ?? '',
+        imageType: photo.mimeType ?? '',
+        transcript: transcript.trim(),
+        language: selectedLang,
+      },
+    });
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -30,16 +86,16 @@ export default function AddProductScreen() {
       >
         {/* Photo area */}
         <Pressable
-          onPress={() => setPhotoTaken((v) => !v)}
+          onPress={pickPhoto}
           style={({ pressed }) => [
             styles.photoArea,
             photoTaken && styles.photoTaken,
             pressed && styles.pressed,
           ]}
         >
-          {photoTaken ? (
+          {photo ? (
             <View>
-              <Image source={{ uri: CURRENT_PRODUCT.img }} style={styles.photoImg} resizeMode="cover" />
+              <Image source={{ uri: photo.uri }} style={styles.photoImg} resizeMode="cover" />
               <View style={styles.photoOverlay}>
                 <View style={styles.photoAddedChip}>
                   <View style={styles.checkCircle}>
@@ -100,6 +156,22 @@ export default function AddProductScreen() {
           </View>
         </View>
 
+        {/* Description input */}
+        <View style={styles.descCard}>
+          <Text style={styles.descLabel}>प्रोडक्ट विवरण लिखें</Text>
+          <Text style={styles.descSub}>अभी मैन्युअल लिखें — voice recording जल्द आएगा</Text>
+          <TextInput
+            style={styles.descInput}
+            value={transcript}
+            onChangeText={setTranscript}
+            placeholder='जैसे: "यह हाथ से बना कॉटन बैग है, कीमत ₹600 रखना है"'
+            placeholderTextColor={colors.inkMuted}
+            multiline
+            numberOfLines={3}
+            maxLength={400}
+          />
+        </View>
+
         {/* Language selector */}
         <View style={styles.langSection}>
           <Text style={styles.langLabel}>भाषा चुनें</Text>
@@ -126,7 +198,7 @@ export default function AddProductScreen() {
           icon="✨"
           label="AI से तैयार करें"
           large
-          onPress={() => router.push('/processing')}
+          onPress={handleSubmit}
         />
       </View>
     </View>
@@ -304,6 +376,36 @@ const styles = StyleSheet.create({
   exampleBold: {
     color: colors.ink,
     fontWeight: '700',
+  },
+  descCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    padding: 20,
+    marginTop: 20,
+    ...shadow.card,
+  },
+  descLabel: {
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  descSub: {
+    color: colors.inkMuted,
+    fontSize: 12,
+    marginTop: 2,
+    marginBottom: 12,
+  },
+  descInput: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 14,
+    minHeight: 92,
+    textAlignVertical: 'top',
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 20,
   },
   langSection: {
     marginTop: 20,

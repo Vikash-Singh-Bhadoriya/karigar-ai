@@ -17,6 +17,11 @@ export default function ProductCard({ product, showMetrics = false, onPress }: P
     >
       <View style={styles.imageWrap}>
         <Image source={{ uri: product.img }} style={styles.image} resizeMode="cover" />
+        {product.published && (
+          <View style={styles.newBadge}>
+            <Text style={styles.newBadgeText}>🆕 नया</Text>
+          </View>
+        )}
         <View style={[styles.status, active ? styles.statusActive : styles.statusDraft]}>
           <Text style={[styles.statusText, active ? styles.statusTextActive : styles.statusTextDraft]}>
             {active ? '● Live' : '○ Draft'}
@@ -65,6 +70,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
+  },
+  newBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: colors.brand,
+  },
+  newBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: '700',
   },
   statusActive: {
     backgroundColor: colors.ok,

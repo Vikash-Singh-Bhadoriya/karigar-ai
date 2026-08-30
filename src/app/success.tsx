@@ -12,10 +12,20 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, shadow } from '@/constants/colors';
-import { CURRENT_PRODUCT } from '@/constants/mockData';
+import { useProductAnalysis } from '@/context/ProductAnalysisContext';
+import { formatPrice } from '@/context/productFlow';
 
 export default function SuccessScreen() {
   const insets = useSafeAreaInsets();
+  const { publishedProducts } = useProductAnalysis();
+  const latest = publishedProducts.length
+    ? publishedProducts[publishedProducts.length - 1]
+    : null;
+  const product = latest?.product ?? null;
+  const name = product?.name ?? '';
+  const imageUri = latest?.sourceImageUri ?? '';
+  const priceText = formatPrice(product?.price ?? null);
+
   const scale = useRef(new Animated.Value(0)).current;
   const float = useRef(new Animated.Value(0)).current;
 
@@ -47,7 +57,7 @@ export default function SuccessScreen() {
   const onShare = async () => {
     try {
       await Share.share({
-        message: `KarigarAI पर ${CURRENT_PRODUCT.hindi} — ${CURRENT_PRODUCT.price} में बिक्री के लिए उपलब्ध है!`,
+        message: `KarigarAI पर ${name} — ${priceText} में बिक्री के लिए उपलब्ध है!`,
       });
     } catch {
       // sharing cancelled
@@ -64,19 +74,23 @@ export default function SuccessScreen() {
           🎉
         </Animated.Text>
         <Text style={styles.title}>आपका प्रोडक्ट तैयार है!</Text>
-        <Text style={styles.subtitle}>Cotton Tote Bag अब बेचने के लिए उपलब्ध है</Text>
+        {name ? (
+          <Text style={styles.subtitle}>{name} अब बेचने के लिए उपलब्ध है</Text>
+        ) : (
+          <Text style={styles.subtitle}>आपका प्रोडक्ट अब बेचने के लिए उपलब्ध है</Text>
+        )}
 
         {/* Published product preview */}
         <View style={styles.previewCard}>
           <Image
-            source={{ uri: CURRENT_PRODUCT.img }}
+            source={{ uri: imageUri }}
             style={styles.previewImage}
             resizeMode="cover"
           />
           <View style={styles.previewBody}>
             <View style={styles.previewTexts}>
-              <Text style={styles.previewName}>{CURRENT_PRODUCT.title}</Text>
-              <Text style={styles.previewPrice}>{CURRENT_PRODUCT.price}</Text>
+              <Text style={styles.previewName}>{name}</Text>
+              <Text style={styles.previewPrice}>{priceText}</Text>
             </View>
             <View style={styles.liveBadge}>
               <Text style={styles.liveText}>🟢 Live</Text>

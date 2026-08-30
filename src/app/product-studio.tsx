@@ -5,11 +5,48 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PrimaryButton from '@/components/PrimaryButton';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, radius, shadow } from '@/constants/colors';
-import { CURRENT_PRODUCT, PRODUCT_TAGS } from '@/constants/mockData';
+import { useProductAnalysis } from '@/context/ProductAnalysisContext';
+import { formatPrice } from '@/context/productFlow';
 
 export default function ProductStudioScreen() {
   const insets = useSafeAreaInsets();
+  const { currentProduct, sourceImageUri } = useProductAnalysis();
   const [enhanced, setEnhanced] = useState(false);
+
+  console.log('[FLOW DEBUG] 4. Studio renders -> currentProduct:', currentProduct ? currentProduct.name : 'null', '| imageUri:', sourceImageUri ? sourceImageUri.slice(0, 60) : 'null');
+
+  if (!currentProduct) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ScreenHeader
+          title="AI Product Studio"
+          subtitle="Step 2 of 3"
+          stepIndex={2}
+          totalSteps={3}
+          backTo="/add-product"
+        />
+        <View style={[styles.empty, { paddingBottom: insets.bottom + 16 }]}>
+          <Text style={styles.emptyEmoji}>🤔</Text>
+          <Text style={styles.emptyTitle}>कोई प्रोडक्ट नहीं मिला</Text>
+          <Text style={styles.emptySub}>
+            पहले नया प्रोडक्ट जोड़कर AI analysis करें, फिर यहाँ उसकी details देखें।
+          </Text>
+          <PrimaryButton
+            icon="📸"
+            label="नया प्रोडक्ट जोड़ें"
+            large
+            onPress={() => router.replace('/add-product')}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  const imageUri = sourceImageUri ?? '';
+  const productName = currentProduct.name;
+  const category = currentProduct.category;
+  const tags = currentProduct.tags?.length ? currentProduct.tags : [];
+  const priceText = formatPrice(currentProduct.price);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -48,7 +85,7 @@ export default function ProductStudioScreen() {
 
           <View style={styles.imageWrap}>
             <Image
-              source={{ uri: CURRENT_PRODUCT.img }}
+              source={{ uri: imageUri }}
               style={styles.image}
               resizeMode="cover"
             />
@@ -69,7 +106,7 @@ export default function ProductStudioScreen() {
           <View style={styles.detailsHeader}>
             <View style={styles.detailsHeaderText}>
               <Text style={styles.sectionLabel}>Product Name</Text>
-              <Text style={styles.productTitle}>{CURRENT_PRODUCT.title}</Text>
+              <Text style={styles.productTitle}>{productName}</Text>
             </View>
             <Pressable
               style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
@@ -81,11 +118,16 @@ export default function ProductStudioScreen() {
 
           <View style={styles.chipRow}>
             <View style={[styles.chip, styles.chipBrand]}>
-              <Text style={styles.chipBrandText}>🏷️ Handmade Bags</Text>
+              <Text style={styles.chipBrandText}>🏷️ {category}</Text>
             </View>
             <View style={[styles.chip, styles.chipSurface]}>
-              <Text style={styles.chipSurfaceText}>📍 Maharashtra</Text>
+              <Text style={styles.chipSurfaceText}>⚖️ {currentProduct.weight ?? '—'}</Text>
             </View>
+            {currentProduct.price != null && (
+              <View style={[styles.chip, styles.chipOk]}>
+                <Text style={styles.chipOkText}>💰 {priceText}</Text>
+              </View>
+            )}
             <View style={[styles.chip, styles.chipOk]}>
               <Text style={styles.chipOkText}>✨ AI Generated</Text>
             </View>
@@ -93,21 +135,28 @@ export default function ProductStudioScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Description</Text>
+            <Text style={styles.description}>{currentProduct.description}</Text>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Materials</Text>
             <Text style={styles.description}>
-              A beautifully handcrafted cotton tote bag made using traditional weaving techniques
-              passed down through generations. Eco-friendly, durable, and uniquely designed — every
-              bag tells the story of the artisan's craft.
+              {currentProduct.materials?.length ? currentProduct.materials.join(', ') : '—'}
             </Text>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Tags</Text>
             <View style={styles.tagsRow}>
-              {PRODUCT_TAGS.map((tag) => (
-                <View key={tag} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                </View>
-              ))}
+              {tags.length > 0 ? (
+                tags.map((tag) => (
+                  <View key={tag} style={styles.tag}>
+                    <Text style={styles.tagText}>{tag}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.description}>इस प्रोडक्ट के लिए कोई tags नहीं मिले।</Text>
+              )}
               <Pressable
                 style={({ pressed }) => [styles.addTag, pressed && styles.pressed]}
                 hitSlop={8}
@@ -358,5 +407,29 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.cream,
+  },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    gap: 10,
+  },
+  emptyEmoji: {
+    fontSize: 44,
+    marginBottom: 4,
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  emptySub: {
+    color: colors.inkMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 8,
   },
 });

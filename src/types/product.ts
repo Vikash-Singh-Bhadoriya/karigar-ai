@@ -9,6 +9,8 @@ export interface Product {
   views: number;
   orders: number;
   img: string;
+  /** True when this catalog entry is a newly published AI product (not demo data). */
+  published?: boolean;
 }
 
 export interface StatItem {
@@ -29,4 +31,33 @@ export interface DeliveryLocation {
   status: 'good' | 'mod' | 'costly';
   cost: string;
   hindi: string;
+}
+
+export type ProductField =
+  | 'name'
+  | 'category'
+  | 'description'
+  | 'materials'
+  | 'weight'
+  | 'price';
+
+export interface ProductState {
+  name: string;
+  category: string;
+  description: string;
+  materials: string[];
+  tags: string[];
+  weight: string | null;
+  dimensions: string | null;
+  price: number | null;
+  confidence: Record<string, number>;
+  language?: string;
+  imagePath?: string;
+}
+
+export interface ProductAnalysisResponse {
+  product: ProductState;
+  missingFields: ProductField[];
+  followUpQuestion?: string;
+  ready: boolean;
 }

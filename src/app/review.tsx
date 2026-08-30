@@ -13,10 +13,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import InfoCard from '@/components/InfoCard';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, radius, shadow } from '@/constants/colors';
-import { CURRENT_PRODUCT, DELIVERY_LOCATIONS, PRODUCT_TAGS } from '@/constants/mockData';
+import { DELIVERY_LOCATIONS } from '@/constants/mockData';
+import { useProductAnalysis } from '@/context/ProductAnalysisContext';
+import { formatPrice } from '@/context/productFlow';
 
 export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
+  const { currentProduct, sourceImageUri, publishCurrentProduct } = useProductAnalysis();
   const [publishing, setPublishing] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -27,9 +30,38 @@ export default function ReviewScreen() {
   }, []);
 
   const onPublish = () => {
+    if (publishing || !currentProduct) return;
+    publishCurrentProduct();
     setPublishing(true);
     timer.current = setTimeout(() => router.replace('/success'), 1700);
   };
+
+  if (!currentProduct) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ScreenHeader title="Review & Publish" subtitle="सब कुछ सही है?" backTo="/recommendation" />
+        <View style={[styles.empty, { paddingBottom: insets.bottom + 16 }]}>
+          <Text style={styles.emptyEmoji}>🤔</Text>
+          <Text style={styles.emptyTitle}>कोई प्रोडक्ट नहीं मिला</Text>
+          <Text style={styles.emptySub}>पहले AI analysis करके कोई प्रोडक्ट तैयार करें।</Text>
+          <Pressable
+            onPress={() => router.replace('/add-product')}
+            style={({ pressed }) => [styles.publish, pressed && styles.pressed]}
+          >
+            <Text style={styles.publishIcon}>📸</Text>
+            <Text style={styles.publishText}>नया प्रोडक्ट जोड़ें</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  const tags = currentProduct.tags?.length ? currentProduct.tags : [];
+  const name = currentProduct.name;
+  const imageUri = sourceImageUri ?? '';
+  const priceText = formatPrice(currentProduct.price);
+  const description = currentProduct.description;
+  const metaText = `🏷️ ${currentProduct.category || 'Handmade'}`;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -42,7 +74,7 @@ export default function ReviewScreen() {
         {/* Product image */}
         <View style={styles.imageCard}>
           <Image
-            source={{ uri: CURRENT_PRODUCT.img }}
+            source={{ uri: imageUri }}
             style={styles.image}
             resizeMode="cover"
           />
@@ -56,13 +88,11 @@ export default function ReviewScreen() {
           editLabel="बदलें"
           onEdit={() => router.push('/product-studio')}
         >
-          <Text style={styles.productName}>{CURRENT_PRODUCT.title}</Text>
-          <Text style={styles.metaText}>🏷️ Handmade Bags · 📍 Maharashtra</Text>
-          <Text style={styles.description}>
-            A beautifully handcrafted cotton tote bag using traditional weaving techniques...
-          </Text>
+          <Text style={styles.productName}>{name}</Text>
+          <Text style={styles.metaText}>{metaText}</Text>
+          <Text style={styles.description}>{description}</Text>
           <View style={styles.tags}>
-            {PRODUCT_TAGS.slice(0, 3).map((tag) => (
+            {tags.map((tag) => (
               <View key={tag} style={styles.tag}>
                 <Text style={styles.tagText}>{tag}</Text>
               </View>
@@ -80,7 +110,7 @@ export default function ReviewScreen() {
         >
           <View style={styles.priceRow}>
             <View>
-              <Text style={styles.price}>{CURRENT_PRODUCT.price}</Text>
+              <Text style={styles.price}>{priceText}</Text>
               <Text style={styles.priceSub}>AI recommended</Text>
             </View>
             <View style={styles.marketBadge}>
@@ -242,6 +272,30 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.cream,
+  },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    gap: 10,
+  },
+  emptyEmoji: {
+    fontSize: 44,
+    marginBottom: 4,
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  emptySub: {
+    color: colors.inkMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   publish: {
     height: 64,

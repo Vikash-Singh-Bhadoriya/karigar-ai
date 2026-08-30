@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ProductCard from '@/components/ProductCard';
 import { colors, radius, shadow } from '@/constants/colors';
+import { useProductAnalysis } from '@/context/ProductAnalysisContext';
+import { publishedToProductCard } from '@/context/productFlow';
 import { PRODUCTS } from '@/constants/mockData';
 import type { ProductStatus } from '@/types/product';
 
@@ -17,10 +19,16 @@ const FILTERS: { id: Filter; label: string }[] = [
 
 export default function ProductsScreen() {
   const insets = useSafeAreaInsets();
+  const { publishedProducts } = useProductAnalysis();
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
 
-  const visible = PRODUCTS.filter((p) => {
+  const publishedCards = [...publishedProducts]
+    .reverse()
+    .map(publishedToProductCard);
+  const allProducts = [...publishedCards, ...PRODUCTS];
+
+  const visible = allProducts.filter((p) => {
     const matchesFilter = filter === 'all' || p.status === filter;
     const matchesQuery =
       !query || p.hindi.includes(query) || p.title.toLowerCase().includes(query.toLowerCase());
@@ -28,7 +36,7 @@ export default function ProductsScreen() {
   });
 
   const count = (f: Filter) =>
-    f === 'all' ? PRODUCTS.length : PRODUCTS.filter((p) => p.status === f).length;
+    f === 'all' ? allProducts.length : allProducts.filter((p) => p.status === f).length;
 
   return (
     <View style={styles.container}>
