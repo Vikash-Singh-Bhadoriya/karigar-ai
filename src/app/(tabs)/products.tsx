@@ -1,15 +1,20 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ProductCard from '@/components/ProductCard';
 import { colors, radius, shadow } from '@/constants/colors';
 import { useProductAnalysis } from '@/context/ProductAnalysisContext';
-import { publishedToProductCard } from '@/context/productFlow';
+import { productCardToProductState, publishedToProductCard } from '@/context/productFlow';
 import { PRODUCTS } from '@/constants/mockData';
-import type { ProductStatus } from '@/types/product';
+import type { ProductState, ProductStatus } from '@/types/product';
 
 type Filter = 'all' | ProductStatus;
+
+interface StudioEntry {
+  state: ProductState;
+  imageUri: string | null;
+}
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: 'all', label: 'सभी' },
@@ -19,7 +24,7 @@ const FILTERS: { id: Filter; label: string }[] = [
 
 export default function ProductsScreen() {
   const insets = useSafeAreaInsets();
-  const { publishedProducts } = useProductAnalysis();
+  const { publishedProducts, isProductsHydrated, setProduct } = useProductAnalysis();
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
 
@@ -27,6 +32,26 @@ export default function ProductsScreen() {
     .reverse()
     .map(publishedToProductCard);
   const allProducts = [...publishedCards, ...PRODUCTS];
+
+  const studioEntries = useMemo(() => {
+    const byId = new Map<number, StudioEntry>();
+    for (const p of publishedProducts) {
+      byId.set(p.id, { state: p.product, imageUri: p.sourceImageUri });
+    }
+    for (const p of PRODUCTS) {
+      byId.set(p.id, { state: productCardToProductState(p), imageUri: p.img });
+    }
+    return byId;
+  }, [publishedProducts]);
+
+  const openStudio = (productId: number) => {
+    const entry = studioEntries.get(productId);
+    if (!entry) return;
+    console.log('[PRODUCT SELECT] clicked product:', entry.state.name);
+    console.log('[PRODUCT SELECT] loading into context:', entry.state.name);
+    setProduct(entry.state, entry.imageUri ?? '');
+    router.push('/product-studio');
+  };
 
   const visible = allProducts.filter((p) => {
     const matchesFilter = filter === 'all' || p.status === filter;
@@ -80,16 +105,23 @@ export default function ProductsScreen() {
         </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + 24 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {visible.map((p) => (
-          <View key={p.id} style={styles.gridItem}>
-            <ProductCard product={p} showMetrics onPress={() => router.push('/product-studio')} />
-          </View>
-        ))}
-      </ScrollView>
+      {!isProductsHydrated ? (
+        <View style={[styles.loading, { paddingBottom: insets.bottom + 24 }]}>
+          <ActivityIndicator color={colors.brand} />
+          <Text style={styles.loadingText}>आपके प्रोडक्ट लोड हो रहे हैं...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + 24 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {visible.map((p) => (
+            <View key={p.id} style={styles.gridItem}>
+              <ProductCard product={p} showMetrics onPress={() => openStudio(p.id)} />
+            </View>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -182,6 +214,18 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingTop: 16,
+  },
+  loading: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    color: colors.inkMuted,
+    fontSize: 14,
+    fontWeight: '500',
   },
   gridItem: {
     width: '47.5%',

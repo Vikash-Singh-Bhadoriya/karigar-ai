@@ -6,10 +6,22 @@ import SectionHeader from '@/components/SectionHeader';
 import StatCard from '@/components/StatCard';
 import { colors, radius, shadow } from '@/constants/colors';
 import { HOME_STATS, IMAGES, PRODUCTS } from '@/constants/mockData';
+import { useProductAnalysis } from '@/context/ProductAnalysisContext';
+import { productCardToProductState } from '@/context/productFlow';
+import type { Product } from '@/types/product';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { setProduct } = useProductAnalysis();
   const myProducts = PRODUCTS.slice(0, 2);
+
+  const openStudio = (card: Product) => {
+    const state = productCardToProductState(card);
+    console.log('[PRODUCT SELECT] clicked product:', state.name);
+    console.log('[PRODUCT SELECT] loading into context:', state.name);
+    setProduct(state, card.img);
+    router.push('/product-studio');
+  };
   return (
     <View style={styles.container}>
       <ScrollView
@@ -77,7 +89,7 @@ export default function HomeScreen() {
           <View style={styles.grid}>
             {myProducts.map((p) => (
               <View key={p.id} style={styles.gridItem}>
-                <ProductCard product={p} onPress={() => router.push('/product-studio')} />
+                <ProductCard product={p} onPress={() => openStudio(p)} />
               </View>
             ))}
           </View>

@@ -7,6 +7,7 @@ import {
   type ProductPatch,
   type PublishedProduct,
 } from '@/context/productFlow';
+import { loadPublishedProducts, savePublishedProducts } from '@/services/productStorage';
 
 interface ProductAnalysisContextValue {
   /** Single source of truth for the product currently going through the AI flow. */
@@ -30,10 +31,12 @@ interface ProductAnalysisContextValue {
   clearProduct: () => void;
   /** Mutable update of the SAME current product (e.g. price edit). */
   updateProduct: (patch: ProductPatch) => void;
-  /** Products published by the user during this session (in-memory demo catalog). */
+  /** Products published by the user (persisted in AsyncStorage). */
   publishedProducts: PublishedProduct[];
   /** Add the current product to publishedProducts and return the snapshot. */
   publishCurrentProduct: () => PublishedProduct | null;
+  /** True once the persisted catalogue has been read (even if empty/corrupted). */
+  isProductsHydrated: boolean;
 }
 
 const ProductAnalysisContext = createContext<ProductAnalysisContextValue | undefined>(undefined);
@@ -44,6 +47,7 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
   const [missingFields, setMissingFields] = useState<ProductField[]>([]);
   const [followUpQuestion, setFollowUpQuestion] = useState<string | null>(null);
   const [publishedProducts, setPublishedProducts] = useState<PublishedProduct[]>([]);
+  const [isProductsHydrated, setIsProductsHydrated] = useState(false);
 
   const setProduct = useCallback(
     (product: ProductState, imageUri: string, mf?: ProductField[], fq?: string | null) => {
@@ -72,6 +76,26 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
     console.log('[FLOW DEBUG] context currentProduct changed ->', currentProduct ? currentProduct.name : 'null');
   }, [currentProduct]);
 
+  // [PERSIST debug logs] Remove the four [PERSIST] logs after validation.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      console.log('[PERSIST] Loading published products');
+      try {
+        const stored = await loadPublishedProducts();
+        if (!cancelled) setPublishedProducts(stored);
+        console.log(`[PERSIST] Loaded ${stored.length} products`);
+      } catch (err) {
+        console.log('[PERSIST] Storage load failed', err);
+      } finally {
+        if (!cancelled) setIsProductsHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const updateProduct = useCallback((patch: ProductPatch) => {
     setCurrentProduct((prev) => (prev ? applyProductPatch(prev, patch) : prev));
   }, []);
@@ -79,7 +103,14 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
   const publishCurrentProduct = useCallback(() => {
     if (!currentProduct) return null;
     const item = createPublishedProduct(currentProduct, sourceImageUri);
-    setPublishedProducts((prev) => [...prev, item]);
+    setPublishedProducts((prev) => {
+      const nextProducts = [...prev, item];
+      console.log(`[PERSIST] Saving ${nextProducts.length} products`);
+      savePublishedProducts(nextProducts).catch(() => {
+        // Graceful: keep the product in the UI even if the disk write failed.
+      });
+      return nextProducts;
+    });
     return item;
   }, [currentProduct, sourceImageUri]);
 
@@ -95,6 +126,7 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
       updateProduct,
       publishedProducts,
       publishCurrentProduct,
+      isProductsHydrated,
     }),
     [
       currentProduct,
@@ -107,6 +139,7 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
       updateProduct,
       publishedProducts,
       publishCurrentProduct,
+      isProductsHydrated,
     ]
   );
 

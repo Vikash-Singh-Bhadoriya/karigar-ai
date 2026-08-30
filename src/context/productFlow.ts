@@ -46,3 +46,20 @@ export function publishedToProductCard(published: PublishedProduct): Product {
     published: true,
   };
 }
+
+/** Build a ProductState from a catalogue card (sample product) so it can be loaded into context. */
+export function productCardToProductState(card: Product): ProductState {
+  const digits = card.price.replace(/\D/g, '');
+  return {
+    name: card.hindi.trim() || card.title,
+    category: '',
+    description: '',
+    materials: [],
+    tags: [],
+    weight: null,
+    dimensions: null,
+    price: digits ? Number(digits) : null,
+    confidence: {},
+    imagePath: card.img,
+  };
+}

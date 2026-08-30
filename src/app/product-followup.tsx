@@ -25,6 +25,7 @@ import {
   transcribeAudio,
   useRecorder,
 } from '@/services/speech';
+import { speakText, stopSpeech } from '@/services/tts';
 
 const MAX_QUESTIONS = 2;
 
@@ -50,6 +51,8 @@ export default function ProductFollowUpScreen() {
   } = useProductAnalysis();
   const { recorder, state } = useRecorder();
 
+  const language = (currentProduct?.language as Language | undefined) ?? 'हिंदी';
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [answerText, setAnswerText] = useState('');
   const [askedCount, setAskedCount] = useState(0);
@@ -57,6 +60,7 @@ export default function ProductFollowUpScreen() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [error, setError] = useState('');
   const scrollRef = useRef<ScrollView>(null);
+  const spokenAiIds = useRef<Set<number>>(new Set());
 
   const busyPulse = useRef(new Animated.Value(1)).current;
   const busyLoop = useRef<Animated.CompositeAnimation | null>(null);
@@ -70,6 +74,21 @@ export default function ProductFollowUpScreen() {
       setMessages([{ id: ++msgId, role: 'ai', text: followUpQuestion }]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Automatically speak each new AI question exactly once (dedup by message id).
+  useEffect(() => {
+    for (const m of messages) {
+      if (m.role === 'ai' && !spokenAiIds.current.has(m.id)) {
+        spokenAiIds.current.add(m.id);
+        speakText(m.text, language);
+      }
+    }
+  }, [messages, language]);
+
+  // Stop any playback when leaving the screen.
+  useEffect(() => {
+    return () => stopSpeech();
   }, []);
 
   const stopBusy = useCallback(() => {
@@ -123,6 +142,7 @@ export default function ProductFollowUpScreen() {
   };
 
   const handleVoice = async () => {
+    stopSpeech();
     if (state.isRecording) {
       setError('');
       setIsTranscribing(true);
@@ -156,6 +176,7 @@ export default function ProductFollowUpScreen() {
   };
 
   const handleSubmit = async () => {
+    stopSpeech();
     if (isSubmitting) return; // prevent duplicate requests
     const answer = answerText.trim();
     if (!answer) {
@@ -200,6 +221,7 @@ export default function ProductFollowUpScreen() {
   };
 
   const onBack = () => {
+    stopSpeech();
     clearProduct();
     router.replace('/add-product');
   };
@@ -232,7 +254,16 @@ export default function ProductFollowUpScreen() {
                   <Text style={styles.avatarEmoji}>🤖</Text>
                 </View>
                 <View style={[styles.bubble, styles.aiBubble]}>
-                  <Text style={styles.bubbleName}>KarigarAI</Text>
+                  <View style={styles.aiBubbleHeader}>
+                    <Text style={styles.bubbleName}>KarigarAI</Text>
+                    <Pressable
+                      onPress={() => speakText(m.text, language)}
+                      hitSlop={8}
+                      style={({ pressed }) => [styles.speakerBtn, pressed && styles.pressed]}
+                    >
+                      <Text style={styles.speakerIcon}>🔊</Text>
+                    </Pressable>
+                  </View>
                   <Text style={styles.aiBubbleText}>{m.text}</Text>
                 </View>
               </View>
@@ -400,6 +431,17 @@ const styles = StyleSheet.create({
   aiBubble: {
     backgroundColor: colors.card,
     ...shadow.card,
+  },
+  aiBubbleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  speakerBtn: {
+    padding: 2,
+  },
+  speakerIcon: {
+    fontSize: 15,
   },
   aiBubbleText: {
     color: colors.ink,
