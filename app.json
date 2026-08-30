@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "karigar-ai-mobile",
+    "name": "KarigarAI",
     "slug": "karigar-ai-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,6 +11,7 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.karigar.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -39,6 +40,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "17cfe2ea-18a5-47f6-954b-d69bb58d77b9"
+      }
     }
   }
 }
