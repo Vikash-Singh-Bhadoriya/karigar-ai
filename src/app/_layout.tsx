@@ -6,7 +6,7 @@ export default function RootLayout() {
   return (
     <ProductAnalysisProvider>
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right' }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="add-product" />
         <Stack.Screen name="processing" />

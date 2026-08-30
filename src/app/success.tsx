@@ -102,7 +102,10 @@ export default function SuccessScreen() {
         {/* Actions */}
         <View style={styles.actions}>
           <Pressable
-            onPress={() => router.replace('/(tabs)/products')}
+            onPress={() => {
+              router.dismissAll();
+              router.navigate('/(tabs)/products');
+            }}
             style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
           >
             <Text style={styles.primaryText}>प्रोडक्ट देखें</Text>
