@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
+  Easing,
   Image,
   Pressable,
   ScrollView,
@@ -42,6 +44,135 @@ export default function AddProductScreen() {
   const [transcript, setTranscript] = useState('');
   const { recorder, state } = useRecorder();
   const photoTaken = photo !== null;
+
+  const showRipple = state.isRecording && !isTranscribing;
+
+  const rippleScale = useRef([
+    new Animated.Value(0.4),
+    new Animated.Value(0.4),
+    new Animated.Value(0.4),
+  ]).current;
+  const rippleOpacity = useRef([
+    new Animated.Value(0.6),
+    new Animated.Value(0.6),
+    new Animated.Value(0.6),
+  ]).current;
+  const rippleLoops = useRef<Animated.CompositeAnimation[]>([]);
+  const micPulse = useRef(new Animated.Value(1)).current;
+  const micPulseLoop = useRef<Animated.CompositeAnimation | null>(null);
+  const busyPulse = useRef(new Animated.Value(1)).current;
+  const busyPulseLoop = useRef<Animated.CompositeAnimation | null>(null);
+
+  const stopAllAnimations = useCallback(() => {
+    rippleLoops.current.forEach((loop) => {
+      try {
+        loop.stop();
+      } catch {
+        /* already stopped */
+      }
+    });
+    rippleLoops.current = [];
+    rippleScale.forEach((v) => v.stopAnimation());
+    rippleOpacity.forEach((v) => v.stopAnimation());
+    if (micPulseLoop.current) {
+      try {
+        micPulseLoop.current.stop();
+      } catch {
+        /* already stopped */
+      }
+      micPulseLoop.current = null;
+    }
+    micPulse.stopAnimation();
+    if (busyPulseLoop.current) {
+      try {
+        busyPulseLoop.current.stop();
+      } catch {
+        /* already stopped */
+      }
+      busyPulseLoop.current = null;
+    }
+    busyPulse.stopAnimation();
+  }, [rippleScale, rippleOpacity, micPulse, busyPulse]);
+
+  useEffect(() => {
+    if (showRipple) {
+      rippleScale.forEach((scale, i) => {
+        scale.setValue(0.4);
+        rippleOpacity[i].setValue(0.6);
+        const loop = Animated.loop(
+          Animated.parallel([
+            Animated.timing(scale, {
+              toValue: 1,
+              duration: 2200,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+            Animated.timing(rippleOpacity[i], {
+              toValue: 0,
+              duration: 2200,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+          ]),
+          { iterations: -1, resetBeforeIteration: true }
+        );
+        loop.start();
+        rippleLoops.current[i] = loop;
+      });
+
+      micPulse.setValue(0.96);
+      micPulseLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(micPulse, {
+            toValue: 1.08,
+            duration: 700,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(micPulse, {
+            toValue: 0.96,
+            duration: 700,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      micPulseLoop.current.start();
+    } else if (isTranscribing) {
+      busyPulse.setValue(0.95);
+      busyPulseLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(busyPulse, {
+            toValue: 1.12,
+            duration: 650,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(busyPulse, {
+            toValue: 0.95,
+            duration: 650,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      busyPulseLoop.current.start();
+    } else {
+      stopAllAnimations();
+    }
+
+    return stopAllAnimations;
+  }, [
+    showRipple,
+    isTranscribing,
+    stopAllAnimations,
+    rippleScale,
+    rippleOpacity,
+    micPulse,
+    busyPulse,
+  ]);
+
+  useEffect(() => stopAllAnimations, [stopAllAnimations]);
 
   const handleMicPress = async () => {
     if (state.isRecording) {
@@ -177,21 +308,67 @@ export default function AddProductScreen() {
             </View>
           </View>
 
-          <View style={styles.micWrap}>
-            <Pressable
-              onPress={handleMicPress}
-              disabled={isTranscribing}
-              style={({ pressed }) => [
-                styles.micButton,
-                state.isRecording && styles.micButtonActive,
-                isTranscribing && styles.micButtonBusy,
-                pressed && styles.pressed,
-              ]}
+          <View style={styles.micStage}>
+            {rippleScale.map((scale, i) =>
+              showRipple ? (
+                <Animated.View
+                  key={i}
+                  pointerEvents="none"
+                  style={[
+                    styles.rippleRing,
+                    {
+                      transform: [{ scale: rippleScale[i] }],
+                      opacity: rippleOpacity[i],
+                    },
+                  ]}
+                />
+              ) : null
+            )}
+
+            {isTranscribing ? (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.busyHalo,
+                  {
+                    opacity: busyPulse.interpolate({
+                      inputRange: [0.95, 1.12],
+                      outputRange: [0.9, 0.3],
+                    }),
+                    transform: [{ scale: busyPulse }],
+                  },
+                ]}
+              />
+            ) : null}
+
+            <Animated.View
+              style={{
+                transform: [
+                  {
+                    scale: showRipple
+                      ? micPulse
+                      : isTranscribing
+                        ? busyPulse
+                        : 1,
+                  },
+                ],
+              }}
             >
-              <Text style={styles.micIcon}>
-                {isTranscribing ? '⏳' : state.isRecording ? '⏹' : '🎤'}
-              </Text>
-            </Pressable>
+              <Pressable
+                onPress={handleMicPress}
+                disabled={isTranscribing}
+                style={({ pressed }) => [
+                  styles.micButton,
+                  state.isRecording && styles.micButtonActive,
+                  isTranscribing && styles.micButtonBusy,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.micIcon}>
+                  {isTranscribing ? '•••' : state.isRecording ? '■' : '🎤'}
+                </Text>
+              </Pressable>
+            </Animated.View>
           </View>
 
           <Text style={[styles.micHint, state.isRecording && styles.micHintActive]}>
@@ -401,9 +578,30 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
     fontSize: 12,
   },
-  micWrap: {
+  micStage: {
+    width: 128,
+    height: 128,
     alignItems: 'center',
-    paddingVertical: 22,
+    justifyContent: 'center',
+    alignSelf: 'center',
+  },
+  rippleRing: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: colors.brand,
+    backgroundColor: 'rgba(224,123,30,0.18)',
+  },
+  busyHalo: {
+    position: 'absolute',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 3,
+    borderColor: colors.brand,
+    backgroundColor: 'rgba(224,123,30,0.10)',
   },
   micButton: {
     width: 80,

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { ProductState } from '@/types/product';
+import type { ProductField, ProductState } from '@/types/product';
 import {
   applyProductPatch,
   createPublishedProduct,
@@ -13,8 +13,19 @@ interface ProductAnalysisContextValue {
   currentProduct: ProductState | null;
   /** Selected photo of the current product (the one sent to the backend). */
   sourceImageUri: string | null;
-  /** Store the REAL analyzed product + its selected image. */
-  setProduct: (product: ProductState, imageUri: string) => void;
+  /** Fields still missing after the last analysis / follow-up answer. */
+  missingFields: ProductField[];
+  /** The AI's follow-up question to ask next (null when the flow can continue). */
+  followUpQuestion: string | null;
+  /** Store the REAL analyzed product + its selected image + optional follow-up state. */
+  setProduct: (
+    product: ProductState,
+    imageUri: string,
+    missingFields?: ProductField[],
+    followUpQuestion?: string | null
+  ) => void;
+  /** Update ONLY the conversational missing-field state, keeping currentProduct intact. */
+  setMissingFieldState: (missingFields: ProductField[], followUpQuestion: string | null) => void;
   /** Clear the current product (and its image). */
   clearProduct: () => void;
   /** Mutable update of the SAME current product (e.g. price edit). */
@@ -30,17 +41,31 @@ const ProductAnalysisContext = createContext<ProductAnalysisContextValue | undef
 export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
   const [currentProduct, setCurrentProduct] = useState<ProductState | null>(null);
   const [sourceImageUri, setSourceImageUri] = useState<string | null>(null);
+  const [missingFields, setMissingFields] = useState<ProductField[]>([]);
+  const [followUpQuestion, setFollowUpQuestion] = useState<string | null>(null);
   const [publishedProducts, setPublishedProducts] = useState<PublishedProduct[]>([]);
 
-  const setProduct = useCallback((product: ProductState, imageUri: string) => {
-    console.log('[FLOW DEBUG] setProduct called ->', product?.name ?? 'undefined', '| price:', product?.price ?? null, '| image:', imageUri.slice(0, 60));
-    setCurrentProduct(product);
-    setSourceImageUri(imageUri);
+  const setProduct = useCallback(
+    (product: ProductState, imageUri: string, mf?: ProductField[], fq?: string | null) => {
+      console.log('[FLOW DEBUG] setProduct called ->', product?.name ?? 'undefined', '| price:', product?.price ?? null, '| image:', imageUri.slice(0, 60));
+      setCurrentProduct(product);
+      setSourceImageUri(imageUri);
+      setMissingFields(mf ?? []);
+      setFollowUpQuestion(typeof fq === 'string' ? fq : null);
+    },
+    []
+  );
+
+  const setMissingFieldState = useCallback((mf: ProductField[], fq: string | null) => {
+    setMissingFields(mf);
+    setFollowUpQuestion(fq);
   }, []);
 
   const clearProduct = useCallback(() => {
     setCurrentProduct(null);
     setSourceImageUri(null);
+    setMissingFields([]);
+    setFollowUpQuestion(null);
   }, []);
 
   useEffect(() => {
@@ -62,7 +87,10 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
     () => ({
       currentProduct,
       sourceImageUri,
+      missingFields,
+      followUpQuestion,
       setProduct,
+      setMissingFieldState,
       clearProduct,
       updateProduct,
       publishedProducts,
@@ -71,7 +99,10 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
     [
       currentProduct,
       sourceImageUri,
+      missingFields,
+      followUpQuestion,
       setProduct,
+      setMissingFieldState,
       clearProduct,
       updateProduct,
       publishedProducts,

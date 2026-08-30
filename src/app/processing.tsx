@@ -31,6 +31,7 @@ export default function ProcessingScreen() {
   const [done, setDone] = useState(0);
   const [apiState, setApiState] = useState<ApiState>('loading');
   const [apiError, setApiError] = useState('');
+  const [target, setTarget] = useState<'studio' | 'followup' | null>(null);
   const progress = useRef(new Animated.Value(0)).current;
 
   const total = PROCESSING_STEPS.length;
@@ -53,6 +54,7 @@ export default function ProcessingScreen() {
   const runAnalysis = useCallback(async () => {
     setApiState('loading');
     setApiError('');
+    setTarget(null);
     if (!imageUri || !transcript.trim()) {
       setApiError('प्रोडक्ट का विवरण गायब है। वापस जाकर फोटो और विवरण दोबारा भेजें।');
       setApiState('error');
@@ -64,10 +66,15 @@ export default function ProcessingScreen() {
         transcript: transcript.trim(),
         language,
       });
-      console.log('[FLOW DEBUG] 1. API response received -> product:', result.product?.name ?? 'undefined', '| price:', result.product?.price ?? null, '| ready:', result.ready);
+      console.log('[FLOW DEBUG] 1. API response received -> product:', result.product?.name ?? 'undefined', '| price:', result.product?.price ?? null, '| ready:', result.ready, '| missing:', JSON.stringify(result.missingFields));
       const product = result.product;
       console.log('[FLOW DEBUG] 2. product passed into setProduct ->', product?.name ?? 'undefined');
-      setProduct(product, imageUri);
+      setProduct(product, imageUri, result.missingFields, result.followUpQuestion);
+      const needsFollowUp =
+        result.ready === false &&
+        Array.isArray(result.missingFields) &&
+        result.missingFields.length > 0;
+      setTarget(needsFollowUp ? 'followup' : 'studio');
       setApiState('done');
     } catch (err) {
       console.log('[FLOW DEBUG] 1b. API FAILED ->', err instanceof Error ? err.message : err);
@@ -83,11 +90,12 @@ export default function ProcessingScreen() {
   const complete = done >= total;
 
   useEffect(() => {
-    if (complete && apiState === 'done') {
-      const t = setTimeout(() => router.replace('/product-studio'), 600);
+    if (complete && apiState === 'done' && target) {
+      const dest = target === 'followup' ? '/product-followup' : '/product-studio';
+      const t = setTimeout(() => router.replace(dest), 600);
       return () => clearTimeout(t);
     }
-  }, [complete, apiState]);
+  }, [complete, apiState, target]);
 
   const pct = Math.round((done / total) * 100);
 

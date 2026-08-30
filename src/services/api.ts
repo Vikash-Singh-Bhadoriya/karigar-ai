@@ -1,8 +1,9 @@
-import type { ProductAnalysisResponse } from '@/types/product';
+import type { ProductAnalysisResponse, ProductField, ProductState } from '@/types/product';
 
 const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
 
 const ANALYZE_PATH = '/api/products/analyze';
+const FOLLOW_UP_PATH = '/api/products/follow-up';
 
 export class ApiError extends Error {
   readonly status?: number;
@@ -89,6 +90,59 @@ export async function analyzeProduct(
   } catch {
     throw new ApiError(
       `${API_URL} ने गलत response दिया (${response.status})। क्या ${API_URL} backend है? backend port 5000 पर चलता है, Metro 8081 पर।`,
+      response.status
+    );
+  }
+
+  if (!response.ok || !json.success) {
+    throw new ApiError(
+      json.message ?? `${API_URL} ने error दिया (${response.status})`,
+      response.status
+    );
+  }
+  if (!json.data) {
+    throw new ApiError('Server से output नहीं मिला।');
+  }
+
+  return json.data;
+}
+
+export interface FollowUpInput {
+  product: ProductState;
+  missingFields: ProductField[];
+  answer: string;
+  language: string;
+  questionCount: number;
+}
+
+export async function submitProductFollowUp(
+  input: FollowUpInput
+): Promise<ProductAnalysisResponse> {
+  if (!API_URL) {
+    throw new ApiError(
+      'EXPO_PUBLIC_API_URL set नहीं है। प्रोजेक्ट root में .env बनाकर अपना backend URL डालें।'
+    );
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${FOLLOW_UP_PATH}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+  } catch {
+    throw new ApiError(
+      `Server से कनेक्ट नहीं हो पाया (${API_URL})। Backend चल रहा है और फोन-कंप्यूटर एक ही Wi-Fi पर हैं?`
+    );
+  }
+
+  let json: ApiEnvelope<ProductAnalysisResponse>;
+  try {
+    json = (await response.json()) as ApiEnvelope<ProductAnalysisResponse>;
+  } catch {
+    throw new ApiError(
+      `${API_URL} ने गलत response दिया (${response.status})। क्या ${API_URL} backend है? backend port 5000 पर चलता है।`,
       response.status
     );
   }
