@@ -5,6 +5,7 @@ import { config } from './config/env';
 import healthRoutes from './routes/health.routes';
 import productRoutes from './routes/product.routes';
 import aiRoutes from './routes/ai.routes';
+import speechRoutes from './routes/speech.routes';
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 app.use(healthRoutes);
 app.use(productRoutes);
 app.use(aiRoutes);
+app.use(speechRoutes);
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', err.message);

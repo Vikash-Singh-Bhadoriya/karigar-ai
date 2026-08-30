@@ -17,6 +17,15 @@ import ScreenHeader from '@/components/ScreenHeader';
 import { colors, radius, shadow } from '@/constants/colors';
 import { LANGUAGES } from '@/constants/mockData';
 import type { Language } from '@/types/product';
+import {
+  requestRecordingPermissions,
+  enableRecordingMode,
+  startRecording,
+  stopRecording,
+  transcribeAudio,
+  useRecorder,
+  toSpeechLocale,
+} from '@/services/speech';
 
 interface PickedPhoto {
   uri: string;
@@ -27,10 +36,47 @@ interface PickedPhoto {
 export default function AddProductScreen() {
   const insets = useSafeAreaInsets();
   const [selectedLang, setSelectedLang] = useState<Language>('हिंदी');
-  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
   const [photo, setPhoto] = useState<PickedPhoto | null>(null);
   const [transcript, setTranscript] = useState('');
+  const { recorder, state } = useRecorder();
   const photoTaken = photo !== null;
+
+  const handleMicPress = async () => {
+    if (state.isRecording) {
+      setVoiceError('');
+      setIsTranscribing(true);
+      try {
+        const uri = await stopRecording(recorder);
+        if (!uri) {
+          throw new Error('Recording खत्म नहीं हो सका। फिर से कोशिश करें।');
+        }
+        const text = await transcribeAudio(uri, selectedLang);
+        setTranscript((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+      } catch (err) {
+        setVoiceError(
+          err instanceof Error ? err.message : 'आवाज समझ नहीं आई। कृपया फिर से बोलें।'
+        );
+      } finally {
+        setIsTranscribing(false);
+      }
+      return;
+    }
+
+    setVoiceError('');
+    try {
+      const perm = await requestRecordingPermissions();
+      if (!perm.granted) {
+        Alert.alert('अनुमति आवश्यक', 'स्पीच के लिए माइक्रोफ़ोन की अनुमति चाहिए।');
+        return;
+      }
+      await enableRecordingMode();
+      await startRecording(recorder);
+    } catch {
+      setVoiceError('रिकॉर्डिंग शुरू नहीं हो सकी। कृपया फिर से कोशिश करें।');
+    }
+  };
 
   const pickPhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -133,25 +179,46 @@ export default function AddProductScreen() {
 
           <View style={styles.micWrap}>
             <Pressable
-              onPress={() => setIsRecording((v) => !v)}
+              onPress={handleMicPress}
+              disabled={isTranscribing}
               style={({ pressed }) => [
                 styles.micButton,
-                isRecording && styles.micButtonActive,
+                state.isRecording && styles.micButtonActive,
+                isTranscribing && styles.micButtonBusy,
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={styles.micIcon}>{isRecording ? '⏹' : '🎤'}</Text>
+              <Text style={styles.micIcon}>
+                {isTranscribing ? '⏳' : state.isRecording ? '⏹' : '🎤'}
+              </Text>
             </Pressable>
           </View>
 
-          <Text style={[styles.micHint, isRecording && styles.micHintActive]}>
-            {isRecording ? '🔴 सुन रहा है...' : 'बटन दबाकर बोलें'}
+          <Text style={[styles.micHint, state.isRecording && styles.micHintActive]}>
+            {isTranscribing
+              ? '✍️ समझ रहा है...'
+              : state.isRecording
+                ? '🔴 सुन रहा हूँ... फिर दबाकर रोकें'
+                : 'बटन दबाकर बोलें'}
           </Text>
+
+          {voiceError ? (
+            <View style={styles.voiceError}>
+              <Text style={styles.voiceErrorText}>⚠️ {voiceError}</Text>
+              <Pressable onPress={handleMicPress} disabled={isTranscribing} style={({ pressed }) => [styles.retryBtn, pressed && styles.pressed]}>
+                <Text style={styles.retryText}>🔁 फिर से बोलें</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          <View style={styles.localeRow}>
+            <Text style={styles.localeText}>🎙️ {toSpeechLocale(selectedLang)}</Text>
+          </View>
 
           <View style={styles.exampleBox}>
             <Text style={styles.exampleText}>
               <Text style={styles.exampleBold}>उदाहरण: </Text>
-              "यह हाथ से बना हुआ कॉटन बैग है, इसकी कीमत ₹600 रखना चाहता हूं।"
+              “यह हाथ से बना हुआ कॉटन बैग है, इसकी कीमत ₹600 रखना चाहता हूं।”
             </Text>
           </View>
         </View>
@@ -159,7 +226,7 @@ export default function AddProductScreen() {
         {/* Description input */}
         <View style={styles.descCard}>
           <Text style={styles.descLabel}>प्रोडक्ट विवरण लिखें</Text>
-          <Text style={styles.descSub}>अभी मैन्युअल लिखें — voice recording जल्द आएगा</Text>
+          <Text style={styles.descSub}>लिखकर या बोलकर भरें — दोनों एक ही बॉक्स में आते हैं</Text>
           <TextInput
             style={styles.descInput}
             value={transcript}
@@ -350,6 +417,9 @@ const styles = StyleSheet.create({
   micButtonActive: {
     backgroundColor: colors.earth,
   },
+  micButtonBusy: {
+    backgroundColor: colors.inkMuted,
+  },
   micIcon: {
     fontSize: 30,
   },
@@ -360,6 +430,40 @@ const styles = StyleSheet.create({
   },
   micHintActive: {
     color: colors.earth,
+    fontWeight: '600',
+  },
+  voiceError: {
+    backgroundColor: colors.riskBg,
+    borderRadius: radius.md,
+    padding: 14,
+    marginTop: 14,
+    alignItems: 'center',
+    gap: 10,
+  },
+  voiceErrorText: {
+    color: colors.risk,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  retryBtn: {
+    backgroundColor: colors.risk,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: radius.sm,
+  },
+  retryText: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  localeRow: {
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  localeText: {
+    color: colors.inkMuted,
+    fontSize: 12,
     fontWeight: '600',
   },
   exampleBox: {
