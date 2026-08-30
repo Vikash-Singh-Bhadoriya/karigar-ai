@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { config } from '../config/env';
 import type {
+  FollowUpInput,
   ListingInput,
   ProductAnalysisResponse,
   ProductField,
@@ -54,6 +55,19 @@ const FOLLOW_UP: Record<ProductField, Record<Lang, string>> = {
     en: 'What price do you want for this product?',
   },
 };
+
+/** Hard cap so the artisan never gets trapped in an endless loop of questions. */
+const FOLLOW_UP_MAX_ROUNDS = 2;
+
+/** Order in which missing fields should be asked about (most important first). */
+const FOLLOW_UP_PRIORITY: ProductField[] = [
+  'price',
+  'materials',
+  'weight',
+  'category',
+  'description',
+  'name',
+];
 
 /* ------------------------------------------------------------------------- */
 /* Gemini HTTP client                                                         */
@@ -167,6 +181,99 @@ function buildPrompt(input: ProductInput): string {
     '- weight/dimensions: keep as mentioned, e.g. "500 g" or "30 x 40 cm"; null if unknown.',
     '- confidence: a 0-1 score per field the model actually filled.',
   ].join('\n');
+}
+
+/* ------------------------------------------------------------------------- */
+/* Conversational follow-up (missing-field) engine                            */
+/* ------------------------------------------------------------------------- */
+
+function ensureTags(product: ProductState): ProductState {
+  if (product.tags && product.tags.length > 0) return product;
+  const seed = [product.name, product.category, product.description]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  const words = seed
+    ? Array.from(
+        new Set(seed.split(/[^a-z0-9\u0900-\u097F]+/).filter((w) => w.length > 2))
+      )
+    : [];
+  const tags = words.slice(0, 5).map((w) => `#${w.charAt(0).toUpperCase()}${w.slice(1)}`);
+  return { ...product, tags: tags.length ? tags : ['#Handmade', '#Artisan'] };
+}
+
+function buildFollowUpQuestion(field: ProductField, lang: Lang, isReask: boolean): string {
+  const base = FOLLOW_UP[field][lang];
+  if (isReask) {
+    if (lang === 'hi') return `कोई बात नहीं 😊 ${base}`;
+    if (lang === 'mr') return `काही हरकत नाही 😊 ${base}`;
+    return `No problem 😊 ${base}`;
+  }
+  const lead = { hi: 'बहुत बढ़िया! 😊', mr: 'छान! 😊', en: 'Great! 😊' }[lang];
+  return `${lead} ${base}`;
+}
+
+function buildFollowUpPrompt(input: FollowUpInput): string {
+  const { product, missingFields, answer, questionCount = 0 } = input;
+  const missing = missingFields.filter((f): f is ProductField =>
+    (REQUIRED_FIELDS as readonly ProductField[]).includes(f)
+  );
+  return [
+    'You are KarigarAI, continuing a product-listing conversation with an Indian artisan.',
+    'Here is the current product JSON (PRESERVE every field in your output unless the answer changes it):',
+    JSON.stringify(product),
+    `The following required fields are still missing: ${JSON.stringify(missing)}`,
+    `The artisan just answered: "${(answer ?? '').trim()}"`,
+    'Interpret the answer in context and update ONLY the product fields it implies (e.g. "सात सौ रुपये" -> price 700; "कपास" -> materials ["Cotton"]; weight/size -> weight or dimensions).',
+    `This is follow-up question #${questionCount + 1} of ${FOLLOW_UP_MAX_ROUNDS}. Do not imply more questions remain than this budget.`,
+    'Then determine which required fields (name, category, description, materials, weight, price) are STILL missing.',
+    'Rules:',
+    '- If tags are empty, generate 3-5 sensible marketplace tags. Never block on tags.',
+    '- If the answer is vague and a required field is still missing, keep that field missing so the caller can re-ask politely once.',
+    '- Output ONLY valid JSON (no markdown, no code fences) in exactly this shape:',
+    JSON.stringify({
+      product: {
+        name: 'string',
+        category: 'string',
+        description: 'string',
+        materials: ['string'],
+        tags: ['string'],
+        weight: 'string or null',
+        dimensions: 'string or null',
+        price: 'number or null',
+        confidence: { 'field-name': '0-1' },
+      },
+    }),
+  ].join('\n');
+}
+
+function buildFollowUpResponse(
+  product: ProductState,
+  input: FollowUpInput
+): ProductAnalysisResponse {
+  const finalProduct = ensureTags(product);
+  const missing = REQUIRED_FIELDS.filter((f) => isMissing(f, finalProduct));
+  const asked = input.questionCount ?? 0;
+  const lang = toLang(input.language);
+
+  if (missing.length === 0 || asked >= FOLLOW_UP_MAX_ROUNDS) {
+    return { product: finalProduct, missingFields: missing, followUpQuestion: undefined, ready: true };
+  }
+
+  const nextField = FOLLOW_UP_PRIORITY.find((f) => missing.includes(f)) ?? missing[0];
+  const question = buildFollowUpQuestion(nextField, lang, asked >= 1);
+  return {
+    product: finalProduct,
+    missingFields: missing,
+    followUpQuestion: question,
+    ready: false,
+  };
+}
+
+function mockFollowUp(input: FollowUpInput): ProductAnalysisResponse {
+  const product = ensureTags(input.product);
+  const missing = REQUIRED_FIELDS.filter((f) => isMissing(f, product));
+  return buildFollowUpResponse(product, input);
 }
 
 function toStr(v: unknown): string {
@@ -313,6 +420,23 @@ export async function generateListing(input: ListingInput): Promise<ProductAnaly
     language: input.language,
   };
   return buildResponse(product, input.language);
+}
+
+export async function followUp(input: FollowUpInput): Promise<ProductAnalysisResponse> {
+  if (!config.geminiApiKey) {
+    console.warn('[ai.service] GEMINI_API_KEY not set — returning mock follow-up');
+    return mockFollowUp(input);
+  }
+
+  const parts: GeminiPart[] = [{ text: buildFollowUpPrompt(input) }];
+  const raw = await callGemini(parts);
+
+  const rawProduct: Record<string, unknown> =
+    typeof raw.product === 'object' && raw.product !== null
+      ? (raw.product as Record<string, unknown>)
+      : {};
+  const product = normalize(rawProduct, input.language, input.product.imagePath);
+  return buildFollowUpResponse(product, input);
 }
 
 function mockAnalysis(input: ProductInput): ProductAnalysisResponse {

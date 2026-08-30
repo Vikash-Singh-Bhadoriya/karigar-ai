@@ -37,3 +37,12 @@ export interface ListingInput {
   transcript: string;
   language?: string;
 }
+
+export interface FollowUpInput {
+  product: ProductState;
+  missingFields: ProductField[];
+  answer: string;
+  language?: string;
+  /** How many follow-up questions have already been asked (0 on the first visit). */
+  questionCount?: number;
+}
