@@ -1,5 +1,10 @@
 import path from 'path';
-import { config } from '../config/env';
+import {
+  getGeminiApiKeys,
+  getSpeechModel,
+  isTransientFailure,
+  runGeminiWithFailover,
+} from '../config/gemini';
 
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -65,9 +70,9 @@ interface GeminiResponse {
 }
 
 export async function transcribeAudio(input: SpeechInput): Promise<string> {
-  if (!config.geminiApiKey) {
+  if (getGeminiApiKeys().length === 0) {
     throw new SpeechServiceError(
-      'GEMINI_API_KEY set नहीं है। स्पीच पहचान के लिए Gemini API key चाहिए।',
+      'Gemini API keys set नहीं हैं। स्पीच पहचान के लिए Gemini API key चाहिए।',
       500
     );
   }
@@ -93,49 +98,59 @@ export async function transcribeAudio(input: SpeechInput): Promise<string> {
   ].join('\n');
 
   const run = async (): Promise<string> => {
-    const url = `${GEMINI_ENDPOINT}/${config.geminiSpeechModel}:generateContent`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': config.geminiApiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { inline_data: { mime_type: input.mimeType, data: input.audio.toString('base64') } },
-              { text: prompt },
-            ],
+    const model = getSpeechModel();
+    try {
+      return await runGeminiWithFailover('speech', async (apiKey) => {
+        const url = `${GEMINI_ENDPOINT}/${model}:generateContent`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
           },
-        ],
-        generationConfig: { temperature: 0, maxOutputTokens: 1024 },
-      }),
-    });
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { inline_data: { mime_type: input.mimeType, data: input.audio.toString('base64') } },
+                  { text: prompt },
+                ],
+              },
+            ],
+            generationConfig: { temperature: 0, maxOutputTokens: 1024 },
+          }),
+        });
 
-    if (!res.ok) {
-      const body = await res.text();
-      console.error(
-        `[speech.service] Gemini audio error (${res.status}): ${body.slice(0, 300)}`
-      );
-      if (isRateLimitStatus(res.status)) {
+        if (!res.ok) {
+          const body = await res.text();
+          console.error(
+            `[speech.service] Gemini audio error (${res.status}): ${body.slice(0, 300)}`
+          );
+          throw {
+            status: res.status,
+            body,
+            transient: isTransientFailure(res.status, body),
+          };
+        }
+
+        const data = (await res.json()) as GeminiResponse;
+        const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (typeof text !== 'string' || !text.trim()) {
+          throw new SpeechServiceError('Gemini returned empty transcription', 500);
+        }
+        return text.trim();
+      });
+    } catch (error) {
+      if (error instanceof SpeechServiceError) throw error;
+      const status = (error as { status?: number })?.status ?? 500;
+      if (isRateLimitStatus(status)) {
         throw new SpeechServiceError(
           'Voice service अस्थायी रूप से व्यस्त है (rate limit)। कुछ सेकंड बाद फिर से कोशिश करें।',
-          res.status
+          status
         );
       }
-      throw new SpeechServiceError(
-        `Gemini transcription error (${res.status})`,
-        res.status
-      );
+      throw new SpeechServiceError(`Gemini transcription error (${status})`, status);
     }
-
-    const data = (await res.json()) as GeminiResponse;
-    const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (typeof text !== 'string' || !text.trim()) {
-      throw new SpeechServiceError('Gemini returned empty transcription', 500);
-    }
-    return text.trim();
   };
 
   transcriptionInFlight = run();

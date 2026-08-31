@@ -1,6 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { config } from '../config/env';
+import {
+  getGeminiApiKeys,
+  getProductModel,
+  isTransientFailure,
+  runGeminiWithFailover,
+} from '../config/gemini';
 import type {
   FollowUpInput,
   ListingInput,
@@ -87,35 +92,42 @@ interface GeminiResponse {
 }
 
 async function callGemini(parts: GeminiPart[]): Promise<Record<string, unknown>> {
-  const url = `${GEMINI_ENDPOINT}/${config.geminiModel}:generateContent`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': config.geminiApiKey,
-    },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.4,
-        maxOutputTokens: 2048,
+  const model = getProductModel();
+  return runGeminiWithFailover('product', async (apiKey) => {
+    const url = `${GEMINI_ENDPOINT}/${model}:generateContent`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
       },
-    }),
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.4,
+          maxOutputTokens: 2048,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`[ai.service] Gemini API error (${res.status}): ${body.slice(0, 300)}`);
+      throw {
+        status: res.status,
+        body,
+        transient: isTransientFailure(res.status, body),
+      };
+    }
+
+    const data = (await res.json()) as GeminiResponse;
+    const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (typeof text !== 'string' || !text.trim()) {
+      throw new Error('Gemini returned no content');
+    }
+    return extractJson(text);
   });
-
-  if (!res.ok) {
-    const body = await res.text();
-    console.error(`[ai.service] Gemini API error (${res.status}): ${body.slice(0, 300)}`);
-    throw new Error(`Gemini API error (${res.status})`);
-  }
-
-  const data = (await res.json()) as GeminiResponse;
-  const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (typeof text !== 'string' || !text.trim()) {
-    throw new Error('Gemini returned no content');
-  }
-  return extractJson(text);
 }
 
 function extractJson(text: string): Record<string, unknown> {
@@ -383,8 +395,8 @@ function buildResponse(product: ProductState, language?: string): ProductAnalysi
 /* ------------------------------------------------------------------------- */
 
 export async function analyzeProduct(input: ProductInput): Promise<ProductAnalysisResponse> {
-  if (!config.geminiApiKey) {
-    console.warn('[ai.service] GEMINI_API_KEY not set — returning mock analysis');
+  if (getGeminiApiKeys().length === 0) {
+    console.warn('[ai.service] Gemini API keys not set — returning mock analysis');
     return mockAnalysis(input);
   }
 
@@ -423,8 +435,8 @@ export async function generateListing(input: ListingInput): Promise<ProductAnaly
 }
 
 export async function followUp(input: FollowUpInput): Promise<ProductAnalysisResponse> {
-  if (!config.geminiApiKey) {
-    console.warn('[ai.service] GEMINI_API_KEY not set — returning mock follow-up');
+  if (getGeminiApiKeys().length === 0) {
+    console.warn('[ai.service] Gemini API keys not set — returning mock follow-up');
     return mockFollowUp(input);
   }
 
