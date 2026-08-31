@@ -1,21 +1,33 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { colors, radius } from '@/constants/colors';
 
 interface Props {
   title: string;
   subtitle?: string;
+  /** Safe fallback route when there is no navigation history (e.g. deep link). */
   backTo?: string;
-  stepIndex?: number; // 1-based index of current step
+  stepIndex?: number;
   totalSteps?: number;
 }
 
 export default function ScreenHeader({ title, subtitle, backTo, stepIndex, totalSteps }: Props) {
+  const navigation = useNavigation();
   const showSteps = stepIndex !== undefined && totalSteps !== undefined;
+
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else if (backTo) {
+      router.replace(backTo as never);
+    }
+  };
+
   return (
     <View style={styles.header}>
       <Pressable
-        onPress={() => (backTo ? router.replace(backTo as never) : router.back())}
+        onPress={handleBack}
         style={({ pressed }) => [styles.back, pressed && styles.pressed]}
         hitSlop={8}
       >

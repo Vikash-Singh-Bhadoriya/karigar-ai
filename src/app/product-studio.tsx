@@ -23,7 +23,7 @@ export default function ProductStudioScreen() {
           subtitle="Step 2 of 3"
           stepIndex={2}
           totalSteps={3}
-          backTo="/add-product"
+          backTo="/(tabs)/products"
         />
         <View style={[styles.empty, { paddingBottom: insets.bottom + 16 }]}>
           <Text style={styles.emptyEmoji}>🤔</Text>
@@ -55,7 +55,7 @@ export default function ProductStudioScreen() {
         subtitle="Step 2 of 3"
         stepIndex={2}
         totalSteps={3}
-        backTo="/add-product"
+        backTo="/(tabs)/products"
       />
 
       <ScrollView

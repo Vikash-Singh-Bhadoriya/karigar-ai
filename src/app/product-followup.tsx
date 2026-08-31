@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PrimaryButton from '@/components/PrimaryButton';
 import { colors, radius, shadow } from '@/constants/colors';
@@ -41,6 +42,7 @@ let msgId = 0;
 
 export default function ProductFollowUpScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const {
     currentProduct,
     missingFields,
@@ -223,7 +225,11 @@ export default function ProductFollowUpScreen() {
   const onBack = () => {
     stopSpeech();
     clearProduct();
-    router.replace('/add-product');
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      router.replace('/add-product');
+    }
   };
 
   return (
