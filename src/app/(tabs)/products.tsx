@@ -14,6 +14,8 @@ type Filter = 'all' | ProductStatus;
 interface StudioEntry {
   state: ProductState;
   imageUri: string | null;
+  /** Present only when this card represents an existing published product (EDIT mode). */
+  publishedId?: number;
 }
 
 const FILTERS: { id: Filter; label: string }[] = [
@@ -24,7 +26,8 @@ const FILTERS: { id: Filter; label: string }[] = [
 
 export default function ProductsScreen() {
   const insets = useSafeAreaInsets();
-  const { publishedProducts, isProductsHydrated, setProduct } = useProductAnalysis();
+  const { publishedProducts, isProductsHydrated, setProduct, setEditingProductId } =
+    useProductAnalysis();
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
 
@@ -36,7 +39,7 @@ export default function ProductsScreen() {
   const studioEntries = useMemo(() => {
     const byId = new Map<number, StudioEntry>();
     for (const p of publishedProducts) {
-      byId.set(p.id, { state: p.product, imageUri: p.sourceImageUri });
+      byId.set(p.id, { state: p.product, imageUri: p.sourceImageUri, publishedId: p.id });
     }
     for (const p of PRODUCTS) {
       byId.set(p.id, { state: productCardToProductState(p), imageUri: p.img });
@@ -50,6 +53,7 @@ export default function ProductsScreen() {
     console.log('[PRODUCT SELECT] clicked product:', entry.state.name);
     console.log('[PRODUCT SELECT] loading into context:', entry.state.name);
     setProduct(entry.state, entry.imageUri ?? '');
+    setEditingProductId(entry.publishedId ?? null);
     router.push('/product-studio');
   };
 

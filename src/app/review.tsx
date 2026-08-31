@@ -31,9 +31,12 @@ export default function ReviewScreen() {
 
   const onPublish = () => {
     if (publishing || !currentProduct) return;
-    publishCurrentProduct();
+    const item = publishCurrentProduct();
     setPublishing(true);
-    timer.current = setTimeout(() => router.replace('/success'), 1700);
+    timer.current = setTimeout(
+      () => router.replace({ pathname: '/success', params: { publishedId: String(item?.id ?? '') } }),
+      1700
+    );
   };
 
   if (!currentProduct) {

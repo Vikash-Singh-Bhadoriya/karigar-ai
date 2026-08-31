@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, shadow } from '@/constants/colors';
 import { useProductAnalysis } from '@/context/ProductAnalysisContext';
@@ -17,10 +17,14 @@ import { formatPrice } from '@/context/productFlow';
 
 export default function SuccessScreen() {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ publishedId?: string }>();
   const { publishedProducts } = useProductAnalysis();
-  const latest = publishedProducts.length
-    ? publishedProducts[publishedProducts.length - 1]
-    : null;
+  const publishedId = params.publishedId ? Number(params.publishedId) : NaN;
+  const latest = !Number.isNaN(publishedId)
+    ? (publishedProducts.find((p) => p.id === publishedId) ?? null)
+    : publishedProducts.length
+      ? publishedProducts[publishedProducts.length - 1]
+      : null;
   const product = latest?.product ?? null;
   const name = product?.name ?? '';
   const imageUri = latest?.sourceImageUri ?? '';

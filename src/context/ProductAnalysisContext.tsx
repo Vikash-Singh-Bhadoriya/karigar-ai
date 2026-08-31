@@ -33,7 +33,11 @@ interface ProductAnalysisContextValue {
   updateProduct: (patch: ProductPatch) => void;
   /** Products published by the user (persisted in AsyncStorage). */
   publishedProducts: PublishedProduct[];
-  /** Add the current product to publishedProducts and return the snapshot. */
+  /** id of the published product currently being edited (null = creating a NEW product). */
+  editingProductId: number | null;
+  /** Explicitly mark the current flow as editing an existing published product. */
+  setEditingProductId: (id: number | null) => void;
+  /** Create a new PublishedProduct OR overwrite the edited one (same id). Returns the snapshot. */
   publishCurrentProduct: () => PublishedProduct | null;
   /** True once the persisted catalogue has been read (even if empty/corrupted). */
   isProductsHydrated: boolean;
@@ -47,6 +51,7 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
   const [missingFields, setMissingFields] = useState<ProductField[]>([]);
   const [followUpQuestion, setFollowUpQuestion] = useState<string | null>(null);
   const [publishedProducts, setPublishedProducts] = useState<PublishedProduct[]>([]);
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [isProductsHydrated, setIsProductsHydrated] = useState(false);
 
   const setProduct = useCallback(
@@ -56,6 +61,7 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
       setSourceImageUri(imageUri);
       setMissingFields(mf ?? []);
       setFollowUpQuestion(typeof fq === 'string' ? fq : null);
+      setEditingProductId(null);
     },
     []
   );
@@ -70,6 +76,7 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
     setSourceImageUri(null);
     setMissingFields([]);
     setFollowUpQuestion(null);
+    setEditingProductId(null);
   }, []);
 
   useEffect(() => {
@@ -102,17 +109,34 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
 
   const publishCurrentProduct = useCallback(() => {
     if (!currentProduct) return null;
-    const item = createPublishedProduct(currentProduct, sourceImageUri);
+    // Build the snapshot once (outside the updater) so the returned item is stable.
+    let item: PublishedProduct;
+    if (editingProductId != null) {
+      const existing = publishedProducts.find((p) => p.id === editingProductId);
+      item = existing
+        ? { ...existing, product: currentProduct, sourceImageUri }
+        : createPublishedProduct(currentProduct, sourceImageUri);
+    } else {
+      item = createPublishedProduct(currentProduct, sourceImageUri);
+    }
+
     setPublishedProducts((prev) => {
-      const nextProducts = [...prev, item];
-      console.log(`[PERSIST] Saving ${nextProducts.length} products`);
-      savePublishedProducts(nextProducts).catch(() => {
+      const exists = editingProductId != null && prev.some((p) => p.id === editingProductId);
+      // UPDATE in place (same id / same length) or CREATE by appending.
+      const next = exists
+        ? prev.map((p) => (p.id === editingProductId ? item : p))
+        : [...prev, item];
+      console.log(`[PERSIST] Saving ${next.length} products`);
+      savePublishedProducts(next).catch(() => {
         // Graceful: keep the product in the UI even if the disk write failed.
       });
-      return nextProducts;
+      return next;
     });
+
+    // Editing session is done — next publish is a CREATE until a product is re-opened.
+    setEditingProductId(null);
     return item;
-  }, [currentProduct, sourceImageUri]);
+  }, [currentProduct, sourceImageUri, editingProductId, publishedProducts]);
 
   const value = useMemo(
     () => ({
@@ -125,6 +149,8 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
       clearProduct,
       updateProduct,
       publishedProducts,
+      editingProductId,
+      setEditingProductId,
       publishCurrentProduct,
       isProductsHydrated,
     }),
@@ -138,6 +164,8 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
       clearProduct,
       updateProduct,
       publishedProducts,
+      editingProductId,
+      setEditingProductId,
       publishCurrentProduct,
       isProductsHydrated,
     ]
