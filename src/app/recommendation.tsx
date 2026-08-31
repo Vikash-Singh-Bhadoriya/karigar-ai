@@ -5,10 +5,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PrimaryButton from '@/components/PrimaryButton';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, radius, shadow } from '@/constants/colors';
-import { DELIVERY_LOCATIONS, PRICE_BREAKDOWN, SELLING_SCOPES } from '@/constants/mockData';
+import { DELIVERY_LOCATIONS, SELLING_SCOPES } from '@/constants/mockData';
 import { useProductAnalysis } from '@/context/ProductAnalysisContext';
 import { formatPrice } from '@/context/productFlow';
 import type { DeliveryLocation, SellingScope } from '@/types/product';
+import { useMarketPricing } from '@/hooks/useMarketPricing';
 
 const statusColor = (s: DeliveryLocation['status']): string =>
   s === 'good' ? colors.ok : s === 'mod' ? colors.warn : colors.risk;
@@ -20,6 +21,9 @@ export default function RecommendationScreen() {
   const [scope, setScope] = useState<SellingScope>('states');
   const [priceText, setPriceText] = useState<string>(() =>
     currentProduct?.price != null ? String(currentProduct.price) : ''
+  );
+  const { pricing, state: pricingState } = useMarketPricing(
+    currentProduct != null ? currentProduct : null
   );
 
   useEffect(() => {
@@ -54,6 +58,20 @@ export default function RecommendationScreen() {
 
   const priceDisplay = formatPrice(currentProduct.price);
 
+  const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+
+  const rangeLine =
+    pricingState === 'ready' && pricing
+      ? pricing.marketAvailable
+        ? `बाज़ार range: ${inr(pricing.observedMin ?? pricing.recommendedMin)} – ${inr(pricing.observedMax ?? pricing.recommendedMax)}`
+        : `सुझाया गया range: ${inr(pricing.recommendedMin)} – ${inr(pricing.recommendedMax)} (अनुमानित)`
+      : pricingState === 'unavailable'
+      ? 'बाज़ार मूल्य उपलब्ध नहीं है — आप अपना मूल्य दर्ज कर सकते हैं।'
+      : 'मूल्य सुझाव तैयार हो रहा है…';
+
+  const rangeColor =
+    pricingState === 'unavailable' ? styles.heroRangeWarn : styles.heroRange;
+
   const onPriceChange = (text: string) => {
     const clean = text.replace(/[^0-9]/g, '');
     setPriceText(clean);
@@ -87,7 +105,7 @@ export default function RecommendationScreen() {
           <View style={styles.hero}>
             <Text style={styles.heroLabel}>Suggested Price</Text>
             <Text style={styles.heroPrice}>{priceDisplay}</Text>
-            <Text style={styles.heroRange}>Market range: ₹550 – ₹750</Text>
+            <Text style={rangeColor}>{rangeLine}</Text>
           </View>
 
           <View style={styles.priceInputRow}>
@@ -105,36 +123,44 @@ export default function RecommendationScreen() {
             <Text style={styles.priceInputPencil}>✏️</Text>
           </View>
 
+          {/* "Why this price" — evidence-based explanation from the backend */}
           <Pressable
             onPress={() => setShowBreakdown((v) => !v)}
             style={styles.breakdownToggle}
           >
-            <Text style={styles.breakdownToggleText}>AI ने यह price क्यों सुझाया?</Text>
+            <Text style={styles.breakdownToggleText}>यह price कैसे तय हुआ?</Text>
             <Text style={[styles.chevron, showBreakdown && styles.chevronOpen]}>▾</Text>
           </Pressable>
 
           {showBreakdown && (
             <View style={styles.breakdown}>
-              {PRICE_BREAKDOWN.map((item, i) => (
-                <View key={i} style={styles.breakdownRow}>
-                  <View>
-                    <Text style={styles.breakdownHindi}>{item.hindi}</Text>
-                    <Text style={styles.breakdownEn}>{item.en}</Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.breakdownAmount,
-                      i === PRICE_BREAKDOWN.length - 1 && styles.breakdownAmountFinal,
-                    ]}
-                  >
-                    {item.amount}
-                  </Text>
-                </View>
-              ))}
-              <View style={styles.breakdownTotalRow}>
-                <Text style={styles.breakdownTotalLabel}>कुल price</Text>
-                <Text style={styles.breakdownTotalAmount}>{priceDisplay}</Text>
-              </View>
+              {pricingState === 'ready' && pricing ? (
+                <>
+                  <Text style={styles.breakdownText}>{pricing.explanation}</Text>
+                  {pricing.marketAvailable && pricing.comparableProducts.length > 0 ? (
+                    <View style={styles.comparables}>
+                      <Text style={styles.comparablesLabel}>कुछ मिलते-जुलते बाज़ार मूल्य:</Text>
+                      {pricing.comparableProducts.slice(0, 5).map((c, i) => (
+                        <View key={i} style={styles.comparableRow}>
+                          <Text style={styles.comparableTitle} numberOfLines={1}>
+                            {c.title}
+                          </Text>
+                          <Text style={styles.comparablePrice}>{inr(c.price)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.breakdownNote}>
+                      यह लाइव बाज़ार का आँकड़ा नहीं है, बल्कि आपके प्रोडक्ट की जानकारी के आधार पर
+                      अनुमानित मूल्य है।
+                    </Text>
+                  )}
+                </>
+              ) : (
+                <Text style={styles.breakdownNote}>
+                  बाज़ार मूल्य उपलब्ध नहीं है — आप अपना मूल्य दर्ज कर सकते हैं।
+                </Text>
+              )}
             </View>
           )}
         </View>
@@ -271,6 +297,15 @@ const styles = StyleSheet.create({
     color: colors.white55,
     fontSize: 12,
     marginTop: 6,
+    textAlign: 'center',
+    paddingHorizontal: 8,
+  },
+  heroRangeWarn: {
+    color: '#ffd9b3',
+    fontSize: 12,
+    marginTop: 6,
+    textAlign: 'center',
+    paddingHorizontal: 8,
   },
   priceInputRow: {
     flexDirection: 'row',
@@ -333,45 +368,41 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  breakdownRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  breakdownHindi: {
+  breakdownText: {
     color: colors.ink,
     fontSize: 14,
-    fontWeight: '500',
+    lineHeight: 21,
   },
-  breakdownEn: {
+  breakdownNote: {
     color: colors.inkMuted,
-    fontSize: 12,
-    marginTop: 1,
+    fontSize: 13,
+    lineHeight: 20,
   },
-  breakdownAmount: {
-    color: colors.ink,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  breakdownAmountFinal: {
-    color: colors.brand,
-  },
-  breakdownTotalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  comparables: {
+    gap: 8,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingTop: 12,
   },
-  breakdownTotalLabel: {
-    color: colors.ink,
-    fontSize: 14,
-    fontWeight: '700',
+  comparablesLabel: {
+    color: colors.inkMuted,
+    fontSize: 12,
+    fontWeight: '600',
   },
-  breakdownTotalAmount: {
+  comparableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  comparableTitle: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 13,
+  },
+  comparablePrice: {
     color: colors.brand,
-    fontSize: 18,
+    fontSize: 13,
     fontWeight: '700',
   },
   scopeRow: {

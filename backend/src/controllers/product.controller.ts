@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import * as aiService from '../services/ai.service';
-import type { FollowUpInput, ProductInput } from '../types/product';
+import { getMarketPricing } from '../services/pricing/marketPricing.service';
+import type { FollowUpInput, ProductInput, ProductState } from '../types/product';
 
 export const analyzeProduct = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -37,6 +38,32 @@ export const productFollowUp = async (req: Request, res: Response): Promise<void
     res.json({ success: true, data });
   } catch (error) {
     console.error('productFollowUp error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+interface PricingRequest {
+  product?: Partial<ProductState>;
+  language?: string;
+}
+
+export const getProductPricing = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { product, language } = (req.body ?? {}) as PricingRequest;
+
+    if (!product || typeof product !== 'object') {
+      res.status(400).json({ success: false, message: 'product is required' });
+      return;
+    }
+
+    const data = await getMarketPricing(
+      product as ProductState,
+      typeof language === 'string' ? language : 'हिंदी'
+    );
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('getProductPricing error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

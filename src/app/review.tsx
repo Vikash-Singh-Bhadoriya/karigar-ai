@@ -16,10 +16,14 @@ import { colors, radius, shadow } from '@/constants/colors';
 import { DELIVERY_LOCATIONS } from '@/constants/mockData';
 import { useProductAnalysis } from '@/context/ProductAnalysisContext';
 import { formatPrice } from '@/context/productFlow';
+import { useMarketPricing } from '@/hooks/useMarketPricing';
 
 export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
   const { currentProduct, sourceImageUri, publishCurrentProduct } = useProductAnalysis();
+  const { pricing, state: pricingState } = useMarketPricing(
+    currentProduct != null ? currentProduct : null
+  );
   const [publishing, setPublishing] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -65,6 +69,17 @@ export default function ReviewScreen() {
   const priceText = formatPrice(currentProduct.price);
   const description = currentProduct.description;
   const metaText = `🏷️ ${currentProduct.category || 'Handmade'}`;
+
+  const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+  const marketLabel =
+    pricingState === 'ready' && pricing
+      ? pricing.marketAvailable
+        ? `Market ${inr(pricing.observedMin ?? pricing.recommendedMin)} – ${inr(pricing.observedMax ?? pricing.recommendedMax)}`
+        : `${inr(pricing.recommendedMin)} – ${inr(pricing.recommendedMax)} (अनुमानित)`
+      : pricingState === 'unavailable'
+      ? 'मूल्य दर्ज करें'
+      : 'सुझाव तैयार हो रहा है…';
+  const marketTitle = pricingState === 'ready' && pricing?.marketAvailable ? 'Market' : 'Suggested';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -117,8 +132,8 @@ export default function ReviewScreen() {
               <Text style={styles.priceSub}>AI recommended</Text>
             </View>
             <View style={styles.marketBadge}>
-              <Text style={styles.marketTitle}>Market</Text>
-              <Text style={styles.marketRange}>₹550–₹750</Text>
+              <Text style={styles.marketTitle}>{marketTitle}</Text>
+              <Text style={styles.marketRange}>{marketLabel}</Text>
             </View>
           </View>
         </InfoCard>
