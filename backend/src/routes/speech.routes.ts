@@ -22,6 +22,13 @@ const audioUpload = multer({
 });
 
 router.post('/api/speech/transcribe', audioUpload.single('audio'), (req, res) => {
+  const receivedAt = Date.now();
+  console.log(`[VOICE PERF] backend received request at ${receivedAt}`);
+  res.on('finish', () => {
+    console.log(
+      `[VOICE PERF] response sent at ${Date.now()} (+${Date.now() - receivedAt}ms)`
+    );
+  });
   void (async () => {
     try {
       const originalName = req.file?.originalname ?? 'audio.m4a';

@@ -40,6 +40,19 @@ export function normalizeSpeechLanguage(language?: string): string {
   return 'hi';
 }
 
+/** Maps a normalized language to a BCP-47 speech hint for Gemini. */
+export function speechLanguageCode(language?: string): string {
+  switch (normalizeSpeechLanguage(language)) {
+    case 'mr':
+      return 'mr-IN';
+    case 'en':
+      return 'en-IN';
+    case 'hi':
+    default:
+      return 'hi-IN';
+  }
+}
+
 export function mimeFromAudioName(name: string): string {
   const ext = path.extname(name).toLowerCase();
   switch (ext) {
@@ -90,6 +103,7 @@ export async function transcribeAudio(input: SpeechInput): Promise<string> {
 
   const lang = normalizeSpeechLanguage(input.language);
   const languageName = { hi: 'Hindi', mr: 'Marathi', en: 'English' }[lang];
+  const languageCode = speechLanguageCode(input.language);
   const prompt = [
     'You are a speech-to-text transcription engine.',
     `Transcribe the following audio verbatim in ${languageName}.`,
@@ -102,6 +116,7 @@ export async function transcribeAudio(input: SpeechInput): Promise<string> {
     try {
       return await runGeminiWithFailover('speech', async (apiKey) => {
         const url = `${GEMINI_ENDPOINT}/${model}:generateContent`;
+        console.log(`[VOICE PERF] Gemini request started at ${Date.now()}`);
         const res = await fetch(url, {
           method: 'POST',
           headers: {
@@ -117,9 +132,14 @@ export async function transcribeAudio(input: SpeechInput): Promise<string> {
                 ],
               },
             ],
-            generationConfig: { temperature: 0, maxOutputTokens: 1024 },
+            generationConfig: {
+              temperature: 0,
+              maxOutputTokens: 1024,
+              speechConfig: { languageCode },
+            },
           }),
         });
+        console.log(`[VOICE PERF] Gemini response received at ${Date.now()}`);
 
         if (!res.ok) {
           const body = await res.text();

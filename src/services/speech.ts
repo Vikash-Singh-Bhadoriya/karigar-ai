@@ -2,15 +2,46 @@ import {
   useAudioRecorder,
   useAudioRecorderState,
   AudioModule,
-  RecordingPresets,
   setAudioModeAsync,
 } from 'expo-audio';
-import type { AudioRecorder, RecorderState } from 'expo-audio';
+import type { AudioRecorder, RecorderState, RecordingOptions } from 'expo-audio';
 import type { Language } from '@/types/product';
 
 const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
 
 const TRANSCRIBE_PATH = '/api/speech/transcribe';
+
+// Voice-only recording tuned for speech transcription: mono + moderate AAC
+// bitrate. This is far smaller than the stereo 128kbps HIGH_QUALITY preset,
+// which is the dominant contributor to upload/transcription latency. Mono is
+// more than sufficient for a single voice track.
+const VOICE_RECORDING_OPTIONS: RecordingOptions = {
+  extension: '.m4a',
+  sampleRate: 16000,
+  numberOfChannels: 1,
+  bitRate: 32000,
+  android: {
+    outputFormat: 'mpeg4',
+    audioEncoder: 'aac',
+  },
+  ios: {
+    outputFormat: 'aac ',
+    audioQuality: 32,
+    linearPCMBitDepth: 16,
+    linearPCMIsBigEndian: false,
+    linearPCMIsFloat: false,
+  },
+  web: {
+    mimeType: 'audio/webm',
+    bitsPerSecond: 32000,
+  },
+};
+
+function voicePerf(stage: string, fromMs?: number) {
+  const now = Date.now();
+  const elapsed = fromMs !== undefined ? ` +${now - fromMs}ms` : '';
+  console.log(`[VOICE PERF] ${stage} at ${now}${elapsed}`);
+}
 
 export function toSpeechLocale(language: Language): string {
   switch (language) {
@@ -49,7 +80,7 @@ export async function enableRecordingMode() {
 export type { AudioRecorder, RecorderState };
 
 export function useRecorder() {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorder = useAudioRecorder(VOICE_RECORDING_OPTIONS);
   const state = useAudioRecorderState(recorder);
   return { recorder, state };
 }
@@ -61,10 +92,14 @@ export async function startRecording(recorder: AudioRecorder) {
 }
 
 export async function stopRecording(recorder: AudioRecorder): Promise<string | null> {
+  const startedAt = Date.now();
+  voicePerf('recording stopped');
   if (recorder?.isRecording) {
     await recorder.stop();
   }
-  return recorder?.uri ?? null;
+  const uri = recorder?.uri ?? null;
+  voicePerf('audio URI ready', startedAt);
+  return uri;
 }
 
 export async function transcribeAudio(
@@ -85,6 +120,8 @@ export async function transcribeAudio(
   body.append('language', languageHint(language));
 
   let res: Response;
+  const uploadStartedAt = Date.now();
+  voicePerf('upload started', uploadStartedAt);
   try {
     res = await fetch(`${API_URL}${TRANSCRIBE_PATH}`, {
       method: 'POST',
@@ -95,6 +132,7 @@ export async function transcribeAudio(
       `Server से कनेक्ट नहीं हो पाया (${API_URL})। Backend चल रहा है और फोन-कंप्यूटर एक ही Wi-Fi पर हैं?`
     );
   }
+  voicePerf('upload completed', uploadStartedAt);
 
   let json: { success?: boolean; data?: { transcript?: string }; message?: string };
   try {
@@ -102,6 +140,7 @@ export async function transcribeAudio(
   } catch {
     throw new Error(`Server ने गलत response दिया (${res.status})। क्या ${API_URL} backend है?`);
   }
+  voicePerf('frontend response received', uploadStartedAt);
 
   if (!res.ok || !json.success) {
     throw new Error(json.message ?? `Speech service ने error दिया (${res.status})`);
