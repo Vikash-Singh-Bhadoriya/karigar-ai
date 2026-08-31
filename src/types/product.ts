@@ -25,14 +25,6 @@ export type Language = 'हिंदी' | 'मराठी' | 'English';
 
 export type SellingScope = 'local' | 'states' | 'india';
 
-export interface DeliveryLocation {
-  city: string;
-  emoji: string;
-  status: 'good' | 'mod' | 'costly';
-  cost: string;
-  hindi: string;
-}
-
 export type ProductField =
   | 'name'
   | 'category'

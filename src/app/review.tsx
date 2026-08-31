@@ -13,14 +13,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import InfoCard from '@/components/InfoCard';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, radius, shadow } from '@/constants/colors';
-import { DELIVERY_LOCATIONS } from '@/constants/mockData';
 import { useProductAnalysis } from '@/context/ProductAnalysisContext';
 import { formatPrice } from '@/context/productFlow';
 import { useMarketPricing } from '@/hooks/useMarketPricing';
 
 export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
-  const { currentProduct, sourceImageUri, publishCurrentProduct } = useProductAnalysis();
+  const { currentProduct, sourceImageUri, publishCurrentProduct, sellingScope } = useProductAnalysis();
   const { pricing, state: pricingState } = useMarketPricing(
     currentProduct != null ? currentProduct : null
   );
@@ -138,22 +137,35 @@ export default function ReviewScreen() {
           </View>
         </InfoCard>
 
-        {/* Delivery */}
+        {/* Selling location */}
         <InfoCard
           icon="📍"
-          title="Delivery Locations"
-          hindi="Delivery कहाँ जाएगी"
+          title="Selling Location"
+          hindi="बिक्री की जगह"
           editLabel="बदलें"
           onEdit={() => router.push('/recommendation')}
         >
-          <View style={styles.locGrid}>
-            {DELIVERY_LOCATIONS.map((loc, i) => (
-              <View key={i} style={styles.locItem}>
-                <Text style={styles.locEmoji}>{loc.emoji}</Text>
-                <Text style={styles.locCity}>{loc.city}</Text>
-              </View>
-            ))}
+          <View style={styles.sellRows}>
+            <View style={styles.sellRow}>
+              <Text style={styles.sellLabel}>Seller location</Text>
+              <Text style={styles.sellValue}>Not set</Text>
+            </View>
+            <View style={styles.sellRow}>
+              <Text style={styles.sellLabel}>Selling area</Text>
+              <Text style={styles.sellValue}>
+                {sellingScope === 'local'
+                  ? 'Local'
+                  : sellingScope === 'india'
+                  ? 'All India'
+                  : 'State'}
+              </Text>
+            </View>
           </View>
+          <Text style={styles.deliveryEstimate}>
+            Delivery estimate: Based on seller location and selected market. Actual
+            courier serviceability would be verified through a logistics API in a
+            later phase.
+          </Text>
         </InfoCard>
       </ScrollView>
 
@@ -261,28 +273,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  locGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  sellRows: {
     gap: 8,
+    marginBottom: 14,
   },
-  locItem: {
-    width: '48%',
+  sellRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
     backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: radius.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  locEmoji: {
+  sellLabel: {
+    color: colors.inkMuted,
     fontSize: 14,
   },
-  locCity: {
+  sellValue: {
     color: colors.ink,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '700',
+  },
+  deliveryEstimate: {
+    color: colors.inkMuted,
+    fontSize: 12,
+    lineHeight: 18,
   },
   footer: {
     paddingHorizontal: 20,

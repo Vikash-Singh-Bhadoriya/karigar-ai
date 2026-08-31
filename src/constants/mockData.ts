@@ -1,5 +1,4 @@
 import type {
-  DeliveryLocation,
   Language,
   Product,
   SellingScope,
@@ -116,13 +115,6 @@ export const SELLING_SCOPES: { id: SellingScope; emoji: string; label: string }[
   { id: 'local', emoji: '🏘️', label: 'Local' },
   { id: 'states', emoji: '🗺️', label: 'State' },
   { id: 'india', emoji: '🇮🇳', label: 'All India' },
-];
-
-export const DELIVERY_LOCATIONS: DeliveryLocation[] = [
-  { city: 'Mumbai', emoji: '🟢', status: 'good', cost: 'Free', hindi: 'अच्छी demand' },
-  { city: 'Pune', emoji: '🟡', status: 'mod', cost: '₹45', hindi: 'Moderate interest' },
-  { city: 'Nashik', emoji: '🟡', status: 'mod', cost: '₹65', hindi: 'Growing market' },
-  { city: 'Delhi', emoji: '🔴', status: 'costly', cost: '₹120', hindi: 'Shipping महंगा' },
 ];
 
 export const ORDERS = [

@@ -5,20 +5,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PrimaryButton from '@/components/PrimaryButton';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, radius, shadow } from '@/constants/colors';
-import { DELIVERY_LOCATIONS, SELLING_SCOPES } from '@/constants/mockData';
+import { SELLING_SCOPES } from '@/constants/mockData';
 import { useProductAnalysis } from '@/context/ProductAnalysisContext';
 import { formatPrice } from '@/context/productFlow';
-import type { DeliveryLocation, SellingScope } from '@/types/product';
 import { useMarketPricing } from '@/hooks/useMarketPricing';
-
-const statusColor = (s: DeliveryLocation['status']): string =>
-  s === 'good' ? colors.ok : s === 'mod' ? colors.warn : colors.risk;
 
 export default function RecommendationScreen() {
   const insets = useSafeAreaInsets();
-  const { currentProduct, updateProduct } = useProductAnalysis();
+  const { currentProduct, updateProduct, sellingScope, setSellingScope } = useProductAnalysis();
   const [showBreakdown, setShowBreakdown] = useState(false);
-  const [scope, setScope] = useState<SellingScope>('states');
   const [priceText, setPriceText] = useState<string>(() =>
     currentProduct?.price != null ? String(currentProduct.price) : ''
   );
@@ -165,20 +160,25 @@ export default function RecommendationScreen() {
           )}
         </View>
 
-        {/* Selling scope */}
+        {/* Selling location */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardHeaderIcon}>📍</Text>
-            <Text style={styles.cardHeaderText}>कहाँ बेचना चाहते हैं?</Text>
+            <Text style={styles.cardHeaderText}>Selling Location</Text>
+          </View>
+
+          <View style={styles.sellRow}>
+            <Text style={styles.sellLabel}>Seller location:</Text>
+            <Text style={styles.sellValue}>Not set</Text>
           </View>
 
           <View style={styles.scopeRow}>
             {SELLING_SCOPES.map((s) => {
-              const active = scope === s.id;
+              const active = sellingScope === s.id;
               return (
                 <Pressable
                   key={s.id}
-                  onPress={() => setScope(s.id)}
+                  onPress={() => setSellingScope(s.id)}
                   style={[styles.scopeChip, active && styles.scopeChipActive]}
                 >
                   <Text style={styles.scopeEmoji}>{s.emoji}</Text>
@@ -190,30 +190,17 @@ export default function RecommendationScreen() {
             })}
           </View>
 
-          <View style={styles.insight}>
-            <Text style={styles.insightSparkle}>✨</Text>
-            <View style={styles.insightTexts}>
-              <Text style={styles.insightTitle}>मुंबई में इस प्रोडक्ट की अच्छी demand है</Text>
-              <Text style={styles.insightSub}>दिल्ली तक delivery cost अधिक हो सकती है</Text>
-            </View>
-          </View>
-
-          <Text style={styles.sectionLabel}>Delivery Feasibility</Text>
-          <View style={styles.deliveryList}>
-            {DELIVERY_LOCATIONS.map((loc, i) => (
-              <View key={i} style={styles.deliveryRow}>
-                <View style={styles.deliveryLeft}>
-                  <Text style={styles.deliveryEmoji}>{loc.emoji}</Text>
-                  <View>
-                    <Text style={styles.deliveryCity}>{loc.city}</Text>
-                    <Text style={styles.deliveryHindi}>{loc.hindi}</Text>
-                  </View>
-                </View>
-                <Text style={[styles.deliveryCost, { color: statusColor(loc.status) }]}>
-                  {loc.cost}
-                </Text>
-              </View>
-            ))}
+          <View style={styles.deliveryNote}>
+            <Text style={styles.deliveryNoteTitle}>Selling area</Text>
+            <Text style={styles.deliveryNoteText}>
+              {SELLING_SCOPES.find((s) => s.id === sellingScope)?.label ?? 'Local'}
+            </Text>
+            <Text style={styles.deliveryEstimateLabel}>Delivery estimate</Text>
+            <Text style={styles.deliveryNoteText}>
+              Based on seller location and selected market. Actual courier
+              serviceability would be verified through a logistics API in a later
+              phase.
+            </Text>
           </View>
         </View>
       </ScrollView>
@@ -435,75 +422,49 @@ const styles = StyleSheet.create({
   scopeTextActive: {
     color: colors.white,
   },
-  insight: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    backgroundColor: 'rgba(224,123,30,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(224,123,30,0.2)',
-    borderRadius: radius.lg,
-    padding: 16,
-    marginBottom: 20,
-  },
-  insightSparkle: {
-    fontSize: 17,
-    marginTop: 1,
-  },
-  insightTexts: {
-    flex: 1,
-  },
-  insightTitle: {
-    color: colors.ink,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  insightSub: {
-    color: colors.inkMuted,
-    fontSize: 12,
-    marginTop: 4,
-  },
-  sectionLabel: {
-    color: colors.inkMuted,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginBottom: 10,
-  },
-  deliveryList: {
-    gap: 8,
-  },
-  deliveryRow: {
+  sellRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 13,
+    marginBottom: 10,
   },
-  deliveryLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  sellLabel: {
+    color: colors.inkMuted,
+    fontSize: 14,
   },
-  deliveryEmoji: {
-    fontSize: 16,
-  },
-  deliveryCity: {
+  sellValue: {
     color: colors.ink,
     fontSize: 14,
-    fontWeight: '600',
-  },
-  deliveryHindi: {
-    color: colors.inkMuted,
-    fontSize: 12,
-    marginTop: 1,
-  },
-  deliveryCost: {
-    fontSize: 14,
     fontWeight: '700',
+  },
+  deliveryNote: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: 16,
+    gap: 4,
+    marginTop: 12,
+  },
+  deliveryNoteTitle: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  deliveryEstimateLabel: {
+    color: colors.inkMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginTop: 10,
+  },
+  deliveryNoteText: {
+    color: colors.inkMuted,
+    fontSize: 13,
+    lineHeight: 20,
   },
   footer: {
     paddingHorizontal: 20,

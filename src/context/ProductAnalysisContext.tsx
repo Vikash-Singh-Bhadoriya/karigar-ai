@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { ProductField, ProductState } from '@/types/product';
+import type { ProductField, ProductState, SellingScope } from '@/types/product';
 import {
   applyProductPatch,
   createPublishedProduct,
@@ -31,6 +31,9 @@ interface ProductAnalysisContextValue {
   clearProduct: () => void;
   /** Mutable update of the SAME current product (e.g. price edit). */
   updateProduct: (patch: ProductPatch) => void;
+  /** Seller's intended selling area (kept separate from AI product attributes). */
+  sellingScope: SellingScope;
+  setSellingScope: (scope: SellingScope) => void;
   /** Products published by the user (persisted in AsyncStorage). */
   publishedProducts: PublishedProduct[];
   /** id of the published product currently being edited (null = creating a NEW product). */
@@ -53,6 +56,7 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
   const [publishedProducts, setPublishedProducts] = useState<PublishedProduct[]>([]);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [isProductsHydrated, setIsProductsHydrated] = useState(false);
+  const [sellingScope, setSellingScope] = useState<SellingScope>('states');
 
   const setProduct = useCallback(
     (product: ProductState, imageUri: string, mf?: ProductField[], fq?: string | null) => {
@@ -148,6 +152,8 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
       setMissingFieldState,
       clearProduct,
       updateProduct,
+      sellingScope,
+      setSellingScope,
       publishedProducts,
       editingProductId,
       setEditingProductId,
@@ -163,6 +169,8 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
       setMissingFieldState,
       clearProduct,
       updateProduct,
+      sellingScope,
+      setSellingScope,
       publishedProducts,
       editingProductId,
       setEditingProductId,
