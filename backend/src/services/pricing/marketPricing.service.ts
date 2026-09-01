@@ -96,8 +96,9 @@ function buildEstimate(product: ProductState): {
   max: number;
   anchor: number;
   userBasis: boolean;
-} {
+} | null {
   const ref = resolveCategoryReference(product.category, product.name, product.description);
+  if (!ref) return null;
   const base = categoryBaseEstimate({ min: ref.baseMin, max: ref.baseMax });
   const factor = attributeFactor(product);
 
@@ -130,6 +131,7 @@ export function sanityCheckPrice(
 ): number | null {
   if (!Number.isFinite(candidate) || candidate <= 0) return null;
   const ref = resolveCategoryReference(product.category, product.name, product.description);
+  if (!ref) return null;
   const window = plausibilityWindow({ min: ref.baseMin, max: ref.baseMax }, 8);
   if (candidate < window.min || candidate > window.max) return null;
   return Math.round(candidate);
@@ -152,6 +154,12 @@ function buildExplanation(
   hi: boolean
 ): string {
   const rupee = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+
+  if (pricing.sourceType === 'unavailable' || !pricing.available) {
+    return hi
+      ? 'बाज़ार मूल्य उपलब्ध नहीं है — आप अपना मूल्य दर्ज कर सकते हैं।'
+      : 'Market reference is not available for this product — you can enter your own price.';
+  }
 
   if (pricing.sourceType === 'market_reference') {
     return hi
@@ -192,7 +200,10 @@ export async function getMarketPricing(
     // Recommendation is anchored on the observed range, pulled slightly toward
     // the middle, and sanity-checked against the category window.
     const rec = sanityCheckPrice(Math.round((observedMin + observedMax) / 2), product);
-    const ref = resolveCategoryReference(product.category, product.name, product.description);
+    const ref = resolveCategoryReference(product.category, product.name, product.description) ?? {
+      baseMin: observedMin,
+      baseMax: observedMax,
+    };
     const clampMin = Math.max(observedMin, Math.round(ref.baseMin / 8));
     const clampMax = Math.min(observedMax, Math.round(ref.baseMax * 2));
 
@@ -223,6 +234,26 @@ export async function getMarketPricing(
 
   // 2) Fallback: category-reference / AI estimate (clearly labelled).
   const est = buildEstimate(product);
+
+  // No category reference exists for this product -> be honest, do not
+  // fabricate a general range. The artisan can still enter their own price.
+  if (!est) {
+    const pricing: MarketPricing = {
+      currency: CURRENCY,
+      marketAvailable: false,
+      confidence: 'low',
+      sourceType: 'unavailable',
+      comparableProducts: [],
+      recommendedMin: 0,
+      recommendedMax: 0,
+      recommendedPrice: 0,
+      explanation: '',
+      available: false,
+    };
+    pricing.explanation = buildExplanation(pricing, product, hi);
+    return pricing;
+  }
+
   const sanity = sanityCheckPrice(est.anchor, product);
   const anchor = sanity != null ? sanity : est.anchor;
 

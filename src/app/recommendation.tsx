@@ -57,9 +57,11 @@ export default function RecommendationScreen() {
 
   const rangeLine =
     pricingState === 'ready' && pricing
-      ? pricing.marketAvailable
-        ? `बाज़ार range: ${inr(pricing.observedMin ?? pricing.recommendedMin)} – ${inr(pricing.observedMax ?? pricing.recommendedMax)}`
-        : `सुझाया गया range: ${inr(pricing.recommendedMin)} – ${inr(pricing.recommendedMax)} (अनुमानित)`
+      ? !pricing.available
+        ? 'बाज़ार मूल्य उपलब्ध नहीं है — आप अपना मूल्य दर्ज कर सकते हैं।'
+        : pricing.marketAvailable
+        ? `Market Reference: ${inr(pricing.observedMin ?? pricing.recommendedMin)} – ${inr(pricing.observedMax ?? pricing.recommendedMax)}`
+        : `Estimated Market Range: ${inr(pricing.recommendedMin)} – ${inr(pricing.recommendedMax)} (अनुमानित)`
       : pricingState === 'unavailable'
       ? 'बाज़ार मूल्य उपलब्ध नहीं है — आप अपना मूल्य दर्ज कर सकते हैं।'
       : 'मूल्य सुझाव तैयार हो रहा है…';
@@ -129,12 +131,12 @@ export default function RecommendationScreen() {
 
           {showBreakdown && (
             <View style={styles.breakdown}>
-              {pricingState === 'ready' && pricing ? (
+              {pricingState === 'ready' && pricing && pricing.available ? (
                 <>
                   <Text style={styles.breakdownText}>{pricing.explanation}</Text>
                   {pricing.marketAvailable && pricing.comparableProducts.length > 0 ? (
                     <View style={styles.comparables}>
-                      <Text style={styles.comparablesLabel}>कुछ मिलते-जुलते बाज़ार मूल्य:</Text>
+                      <Text style={styles.comparablesLabel}>Market Reference — कुछ मिलते-जुलते बाज़ार मूल्य:</Text>
                       {pricing.comparableProducts.slice(0, 5).map((c, i) => (
                         <View key={i} style={styles.comparableRow}>
                           <Text style={styles.comparableTitle} numberOfLines={1}>
