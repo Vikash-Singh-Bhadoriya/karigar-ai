@@ -13,6 +13,7 @@ export default function ProductStudioScreen() {
   
   const { currentProduct, sourceImageUri } = useProductAnalysis();
   const [enhanced, setEnhanced] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
 
   console.log('[FLOW DEBUG] 4. Studio renders -> currentProduct:', currentProduct ? currentProduct.name : 'null', '| imageUri:', sourceImageUri ? sourceImageUri.slice(0, 60) : 'null');
 
@@ -85,11 +86,19 @@ export default function ProductStudioScreen() {
           </View>
 
           <View style={styles.imageWrap}>
-            <Image
-              source={{ uri: imageUri }}
-              style={styles.image}
-              resizeMode="cover"
-            />
+            {imageUri && !imageFailed ? (
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.image}
+                resizeMode="cover"
+                onError={() => setImageFailed(true)}
+              />
+            ) : (
+              <View style={styles.imageFallback}>
+                <Text style={styles.imageFallbackEmoji}>🖼️</Text>
+                <Text style={styles.imageFallbackText}>फोटो उपलब्ध नहीं है</Text>
+              </View>
+            )}
             <View style={[styles.tint, enhanced ? styles.tintEnhanced : styles.tintOriginal]} />
             <View style={[styles.badge, enhanced ? styles.badgeBrand : styles.badgeDark]}>
               <Text style={styles.badgeText}>{enhanced ? '✨ AI Enhanced' : 'Original'}</Text>
@@ -243,6 +252,22 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: 230,
+  },
+  imageFallback: {
+    width: '100%',
+    height: 230,
+    backgroundColor: colors.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  imageFallbackEmoji: {
+    fontSize: 34,
+    opacity: 0.6,
+  },
+  imageFallbackText: {
+    color: colors.inkMuted,
+    fontSize: 13,
   },
   tint: {
     ...StyleSheet.absoluteFillObject,

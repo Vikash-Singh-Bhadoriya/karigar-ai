@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Product } from '@/types/product';
 import { colors, radius, shadow } from '@/constants/colors';
@@ -10,13 +11,30 @@ interface Props {
 
 export default function ProductCard({ product, showMetrics = false, onPress }: Props) {
   const active = product.status === 'active';
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [product.img]);
+
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <View style={styles.imageWrap}>
-        <Image source={{ uri: product.img }} style={styles.image} resizeMode="cover" />
+        {product.img && !imageFailed ? (
+          <Image
+            source={{ uri: product.img }}
+            style={styles.image}
+            resizeMode="cover"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <View style={styles.imageFallback}>
+            <Text style={styles.imageFallbackEmoji}>🖼️</Text>
+          </View>
+        )}
         {product.published && (
           <View style={styles.newBadge}>
             <Text style={styles.newBadgeText}>🆕 नया</Text>
@@ -62,6 +80,17 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  imageFallback: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageFallbackEmoji: {
+    fontSize: 34,
+    opacity: 0.6,
   },
   status: {
     position: 'absolute',

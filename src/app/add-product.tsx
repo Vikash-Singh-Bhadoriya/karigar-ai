@@ -18,6 +18,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, radius, shadow } from '@/constants/colors';
 import { LANGUAGES } from '@/constants/mockData';
+import { deleteLocalImage, persistLocalImage } from '@/services/imagePersistence';
 import type { Language } from '@/types/product';
 import {
   requestRecordingPermissions,
@@ -223,7 +224,13 @@ export default function AddProductScreen() {
     });
     if (result.canceled || !result.assets.length) return;
     const asset = result.assets[0];
-    setPhoto({ uri: asset.uri, fileName: asset.fileName, mimeType: asset.mimeType });
+    // ImagePicker writes into the app cache dir, which the OS may purge.
+    // Copy into durable app-owned storage so the URI survives cache cleanup.
+    const durableUri = await persistLocalImage(asset.uri);
+    if (photo && photo.uri !== durableUri) {
+      deleteLocalImage(photo.uri);
+    }
+    setPhoto({ uri: durableUri, fileName: asset.fileName, mimeType: asset.mimeType });
   };
 
   const handleSubmit = () => {
