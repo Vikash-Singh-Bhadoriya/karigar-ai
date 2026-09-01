@@ -19,7 +19,7 @@ import { useMarketPricing } from '@/hooks/useMarketPricing';
 
 export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
-  const { currentProduct, sourceImageUri, publishCurrentProduct, sellingScope } = useProductAnalysis();
+  const { currentProduct, sourceImageUri, publishCurrentProduct } = useProductAnalysis();
   const { pricing, state: pricingState } = useMarketPricing(
     currentProduct != null ? currentProduct : null
   );
@@ -148,16 +148,14 @@ export default function ReviewScreen() {
           <View style={styles.sellRows}>
             <View style={styles.sellRow}>
               <Text style={styles.sellLabel}>Seller location</Text>
-              <Text style={styles.sellValue}>Not set</Text>
+              <Text style={styles.sellValue}>
+                {currentProduct.sellerLocation?.trim() || 'Location not set'}
+              </Text>
             </View>
             <View style={styles.sellRow}>
               <Text style={styles.sellLabel}>Selling area</Text>
               <Text style={styles.sellValue}>
-                {sellingScope === 'local'
-                  ? 'Local'
-                  : sellingScope === 'india'
-                  ? 'All India'
-                  : 'State'}
+                {currentProduct.sellingArea?.trim() || 'All India'}
               </Text>
             </View>
           </View>

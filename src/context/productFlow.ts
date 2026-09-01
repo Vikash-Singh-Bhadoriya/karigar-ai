@@ -10,6 +10,20 @@ export interface PublishedProduct {
 
 export type ProductPatch = Partial<ProductState>;
 
+/** Default seller location shown when no explicit location has been set. */
+export const DEFAULT_SELLER_LOCATION = 'Gwalior, Madhya Pradesh';
+/** Default selling area shown when no explicit area has been set. */
+export const DEFAULT_SELLING_AREA = 'All India';
+
+/** Fill in seller-location defaults so every product in the flow has a location. */
+export function withSellerDefaults(product: ProductState): ProductState {
+  return {
+    ...product,
+    sellerLocation: (product.sellerLocation ?? '').trim() || DEFAULT_SELLER_LOCATION,
+    sellingArea: (product.sellingArea ?? '').trim() || DEFAULT_SELLING_AREA,
+  };
+}
+
 /** Merge a patch into the current product (single source of truth for edits). */
 export function applyProductPatch(product: ProductState, patch: ProductPatch): ProductState {
   return { ...product, ...patch };

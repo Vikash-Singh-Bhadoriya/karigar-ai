@@ -5,14 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PrimaryButton from '@/components/PrimaryButton';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, radius, shadow } from '@/constants/colors';
-import { SELLING_SCOPES } from '@/constants/mockData';
 import { useProductAnalysis } from '@/context/ProductAnalysisContext';
 import { formatPrice } from '@/context/productFlow';
 import { useMarketPricing } from '@/hooks/useMarketPricing';
 
 export default function RecommendationScreen() {
   const insets = useSafeAreaInsets();
-  const { currentProduct, updateProduct, sellingScope, setSellingScope } = useProductAnalysis();
+  const { currentProduct, updateProduct } = useProductAnalysis();
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [priceText, setPriceText] = useState<string>(() =>
     currentProduct?.price != null ? String(currentProduct.price) : ''
@@ -169,34 +168,31 @@ export default function RecommendationScreen() {
             <Text style={styles.cardHeaderText}>Selling Location</Text>
           </View>
 
-          <View style={styles.sellRow}>
-            <Text style={styles.sellLabel}>Seller location:</Text>
-            <Text style={styles.sellValue}>Not set</Text>
+          <View style={styles.sellField}>
+            <Text style={styles.sellLabel}>Seller Location</Text>
+            <TextInput
+              style={styles.sellInput}
+              value={currentProduct.sellerLocation ?? ''}
+              onChangeText={(text) => updateProduct({ sellerLocation: text })}
+              placeholder="Gwalior, Madhya Pradesh"
+              placeholderTextColor={colors.inkMuted}
+              maxLength={80}
+            />
           </View>
 
-          <View style={styles.scopeRow}>
-            {SELLING_SCOPES.map((s) => {
-              const active = sellingScope === s.id;
-              return (
-                <Pressable
-                  key={s.id}
-                  onPress={() => setSellingScope(s.id)}
-                  style={[styles.scopeChip, active && styles.scopeChipActive]}
-                >
-                  <Text style={styles.scopeEmoji}>{s.emoji}</Text>
-                  <Text style={[styles.scopeText, active && styles.scopeTextActive]}>
-                    {s.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+          <View style={styles.sellField}>
+            <Text style={styles.sellLabel}>Selling Area</Text>
+            <TextInput
+              style={styles.sellInput}
+              value={currentProduct.sellingArea ?? ''}
+              onChangeText={(text) => updateProduct({ sellingArea: text })}
+              placeholder="All India"
+              placeholderTextColor={colors.inkMuted}
+              maxLength={60}
+            />
           </View>
 
           <View style={styles.deliveryNote}>
-            <Text style={styles.deliveryNoteTitle}>Selling area</Text>
-            <Text style={styles.deliveryNoteText}>
-              {SELLING_SCOPES.find((s) => s.id === sellingScope)?.label ?? 'Local'}
-            </Text>
             <Text style={styles.deliveryEstimateLabel}>Delivery estimate</Text>
             <Text style={styles.deliveryNoteText}>
               Based on seller location and selected market. Actual courier
@@ -394,54 +390,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  scopeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  scopeChip: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 13,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-  },
-  scopeChipActive: {
-    backgroundColor: colors.brand,
-    ...shadow.brand,
-  },
-  scopeEmoji: {
-    fontSize: 14,
-  },
-  scopeText: {
-    color: colors.inkMuted,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  scopeTextActive: {
-    color: colors.white,
-  },
-  sellRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    marginBottom: 10,
+  sellField: {
+    gap: 6,
+    marginBottom: 12,
   },
   sellLabel: {
     color: colors.inkMuted,
     fontSize: 14,
   },
-  sellValue: {
+  sellInput: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
     color: colors.ink,
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
   },
   deliveryNote: {
     backgroundColor: colors.surface,

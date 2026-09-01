@@ -4,6 +4,7 @@ import type { ProductField, ProductState, SellingScope } from '@/types/product';
 import {
   applyProductPatch,
   createPublishedProduct,
+  withSellerDefaults,
   type ProductPatch,
   type PublishedProduct,
 } from '@/context/productFlow';
@@ -61,7 +62,7 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
   const setProduct = useCallback(
     (product: ProductState, imageUri: string, mf?: ProductField[], fq?: string | null) => {
       console.log('[FLOW DEBUG] setProduct called ->', product?.name ?? 'undefined', '| price:', product?.price ?? null, '| image:', imageUri.slice(0, 60));
-      setCurrentProduct(product);
+      setCurrentProduct(withSellerDefaults(product));
       setSourceImageUri(imageUri);
       setMissingFields(mf ?? []);
       setFollowUpQuestion(typeof fq === 'string' ? fq : null);

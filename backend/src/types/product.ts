@@ -24,6 +24,10 @@ export interface ProductState {
   confidence: Record<string, number>;
   language?: string;
   imagePath?: string;
+  /** Seller-provided location text (e.g. "Gwalior, Madhya Pradesh"). */
+  sellerLocation?: string;
+  /** Seller-provided selling area (e.g. "All India"). */
+  sellingArea?: string;
 }
 
 export interface ProductAnalysisResponse {
