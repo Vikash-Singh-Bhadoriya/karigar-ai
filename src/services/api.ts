@@ -159,3 +159,64 @@ export async function submitProductFollowUp(
 
   return json.data;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Publish product to server (catalog API for buyer website)          */
+/* ------------------------------------------------------------------ */
+
+const CATALOG_PATH = '/api/catalog';
+
+export interface PublishToServerInput {
+  product: ProductState;
+  imageUri: string | null;
+  sellingScope: string;
+}
+
+/**
+ * Publishes a product to the backend database so it appears on the buyer
+ * website. This is additive — the existing AsyncStorage save happens first
+ * and this call is best-effort (failure doesn't block the artisan).
+ */
+export async function publishToServer(
+  input: PublishToServerInput
+): Promise<{ id: number } | null> {
+  if (!API_URL) return null;
+
+  try {
+    const body = new FormData();
+    body.append('name', input.product.name || '');
+    body.append('category', input.product.category || '');
+    body.append('description', input.product.description || '');
+    body.append('materials', JSON.stringify(input.product.materials || []));
+    body.append('tags', JSON.stringify(input.product.tags || []));
+    body.append('weight', input.product.weight || '');
+    body.append('dimensions', input.product.dimensions || '');
+    body.append('price', String(input.product.price ?? ''));
+    body.append('selling_scope', input.sellingScope || 'local');
+
+    if (input.imageUri) {
+      const fileName = `product-${Date.now()}.jpg`;
+      body.append('image', {
+        uri: input.imageUri,
+        name: fileName,
+        type: 'image/jpeg',
+      } as unknown as Blob);
+    }
+
+    const response = await fetch(`${API_URL}${CATALOG_PATH}`, {
+      method: 'POST',
+      body,
+    });
+
+    if (!response.ok) {
+      console.log('[PUBLISH] Server publish failed:', response.status);
+      return null;
+    }
+
+    const json = await response.json();
+    return json?.data?.id ? { id: json.data.id } : null;
+  } catch (err) {
+    console.log('[PUBLISH] Server publish failed (network):', err);
+    return null;
+  }
+}

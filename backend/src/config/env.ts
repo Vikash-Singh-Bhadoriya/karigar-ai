@@ -9,4 +9,5 @@ export const config = {
   geminiModel: process.env.GEMINI_MODEL ?? 'gemini-3.5-flash-lite',
   geminiSpeechModel: process.env.GEMINI_SPEECH_MODEL ?? 'gemini-3.5-flash-lite',
   uploadsDir: path.resolve(process.cwd(), 'uploads'),
+  databaseUrl: process.env.DATABASE_URL ?? '',
 };
