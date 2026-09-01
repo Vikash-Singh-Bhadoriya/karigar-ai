@@ -85,10 +85,18 @@ interface GeminiPart {
 
 interface GeminiCandidate {
   content: { parts: Array<{ text?: string }> };
+  finishReason?: string;
 }
 
 interface GeminiResponse {
   candidates?: GeminiCandidate[];
+  promptFeedback?: { blockReason?: string };
+}
+
+/** Pulls the Gemini `status` code (e.g. RESOURCE_EXHAUSTED) from an error body for logging. */
+function geminiErrorCode(body: string): string | undefined {
+  const match = /"status"\s*:\s*"([A-Z_]+)"/.exec(body);
+  return match ? match[1] : undefined;
 }
 
 async function callGemini(parts: GeminiPart[]): Promise<Record<string, unknown>> {
@@ -113,18 +121,32 @@ async function callGemini(parts: GeminiPart[]): Promise<Record<string, unknown>>
 
     if (!res.ok) {
       const body = await res.text();
-      console.error(`[ai.service] Gemini API error (${res.status}): ${body.slice(0, 300)}`);
+      const code = geminiErrorCode(body);
+      console.error(
+        `[GEMINI] product attempt failed: status=${res.status}` +
+          (code ? ` reason=${code}` : '') +
+          ' (failover decision per transient rules)'
+      );
       throw {
         status: res.status,
+        code,
         body,
         transient: isTransientFailure(res.status, body),
       };
     }
 
     const data = (await res.json()) as GeminiResponse;
-    const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const candidate = data?.candidates?.[0];
+    const text: string | undefined = candidate?.content?.parts?.[0]?.text;
     if (typeof text !== 'string' || !text.trim()) {
-      throw new Error('Gemini returned no content');
+      const reason = candidate?.finishReason ?? data?.promptFeedback?.blockReason ?? 'UNKNOWN';
+      console.error(`[GEMINI] product attempt returned no analysable content (reason=${reason})`);
+      throw {
+        status: 400,
+        code: reason === 'SAFETY' ? 'SAFETY_BLOCK' : 'EMPTY_RESPONSE',
+        body: `Gemini returned no analysable content (finishReason=${reason})`,
+        transient: false,
+      };
     }
     return extractJson(text);
   });
