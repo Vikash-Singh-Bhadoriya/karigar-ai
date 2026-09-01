@@ -104,11 +104,25 @@ export async function transcribeAudio(input: SpeechInput): Promise<string> {
   const lang = normalizeSpeechLanguage(input.language);
   const languageName = { hi: 'Hindi', mr: 'Marathi', en: 'English' }[lang];
   const languageCode = speechLanguageCode(input.language);
-  const prompt = [
-    'You are a speech-to-text transcription engine.',
-    `Transcribe the following audio verbatim in ${languageName}.`,
-    'Return ONLY the transcribed text with no commentary, no quotes, and no markdown.',
-    'Keep numbers, prices, and product names exactly as spoken.',
+
+  // Explicit transcription instructions. This is the single most important
+  // lever that prevents Gemini from romanizing/transliterating Hindi speech
+  // into Hinglish. `speechConfig.languageCode` only communicates LANGUAGE
+  // (e.g. hi-IN), not SCRIPT. Without an explicit script mandate, Gemini's
+  // audio transcription defaults to Latin/Hinglish output for Hindi audio.
+  // The systemInstruction below pins the script so Hindi is rendered in
+  // Devanagari while English stays Latin, and mixed speech keeps each
+  // language's native script (code-switching).
+  const systemInstruction = [
+    'You are a verbatim speech-to-text transcription engine.',
+    'Transcribe EXACTLY what the speaker says in the audio. Do not add, remove, or rephrase anything.',
+    'Do NOT translate. Do NOT transliterate. Do NOT romanize. Do NOT convert spoken Hindi into Latin/Roman/Hinglish characters.',
+    'When the speaker speaks Hindi, write the Hindi words using DEVANAGARI script (e.g. लाख की चूड़ियाँ, not "lac ke chudiya").',
+    'When the speaker speaks Marathi, write the Marathi words using DEVANAGARI script.',
+    'When the speaker speaks English, write English using Latin script.',
+    'When the speaker code-switches between Hindi and English within one utterance, preserve the natural code-switching and use the appropriate native script for each language (Devanagari for Hindi/Marathi portions, Latin for English portions).',
+    'Return ONLY the transcription text with no commentary, no quotes, no punctuation corrections, and no markdown.',
+    'Do not summarize, paraphrase, or correct the speaker into another language. Preserve numbers, prices, and product names exactly as spoken.',
   ].join('\n');
 
   const run = async (): Promise<string> => {
@@ -124,11 +138,14 @@ export async function transcribeAudio(input: SpeechInput): Promise<string> {
             'x-goog-api-key': apiKey,
           },
           body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: systemInstruction }],
+            },
             contents: [
               {
                 parts: [
                   { inline_data: { mime_type: input.mimeType, data: input.audio.toString('base64') } },
-                  { text: prompt },
+                  { text: `Transcribe the following ${languageName} audio verbatim.` },
                 ],
               },
             ],
