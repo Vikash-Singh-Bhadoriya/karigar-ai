@@ -10,6 +10,7 @@ import { formatPrice } from '@/context/productFlow';
 
 export default function ProductStudioScreen() {
   const insets = useSafeAreaInsets();
+  
   const { currentProduct, sourceImageUri } = useProductAnalysis();
   const [enhanced, setEnhanced] = useState(false);
 
