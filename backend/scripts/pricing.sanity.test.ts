@@ -100,13 +100,84 @@ async function main(): Promise<void> {
     assert.ok(!result.explanation.includes('undefined'), 'no undefined text');
   });
 
-  test('user-entered price is honoured when plausible', async () => {
+  test('market reference is independent of seller price (lakh bangles)', async () => {
+    const lakhBangles = (price: number | null) =>
+      baseProduct({
+        category: 'Bangles',
+        name: 'लाख की चूड़ियाँ',
+        description: 'हाथ से बनी लाख की चूड़ियाँ, 125 g',
+        materials: ['Lac'],
+        weight: '125 g',
+        price,
+      });
+
+    const r280 = await getMarketPricing(lakhBangles(280), 'English');
+    const r350 = await getMarketPricing(lakhBangles(350), 'English');
+    const r90000 = await getMarketPricing(lakhBangles(90000), 'English');
+
+    assert.ok(r280.available, 'bangles must have a market reference');
+    assert.strictEqual(r280.sourceType, 'category_reference');
+    // ₹280, ₹350 and ₹90,000 must all yield the SAME market reference.
+    assert.strictEqual(r350.recommendedMin, r280.recommendedMin);
+    assert.strictEqual(r350.recommendedMax, r280.recommendedMax);
+    assert.strictEqual(r350.recommendedPrice, r280.recommendedPrice);
+    assert.strictEqual(r90000.recommendedMin, r280.recommendedMin);
+    assert.strictEqual(r90000.recommendedMax, r280.recommendedMax);
+    assert.strictEqual(r90000.recommendedPrice, r280.recommendedPrice);
+  });
+
+  test('market reference is independent of seller price (handmade bag)', async () => {
+    const bag = () => baseProduct({});
+    const rNone = await getMarketPricing(bag(), 'English');
+    const r700 = await getMarketPricing({ ...bag(), price: 700 }, 'English');
+    const r99999 = await getMarketPricing({ ...bag(), price: 99999 }, 'English');
+
+    assert.strictEqual(r700.recommendedMin, rNone.recommendedMin);
+    assert.strictEqual(r700.recommendedMax, rNone.recommendedMax);
+    assert.strictEqual(r700.recommendedPrice, rNone.recommendedPrice);
+    assert.strictEqual(r99999.recommendedMin, rNone.recommendedMin);
+    assert.strictEqual(r99999.recommendedMax, rNone.recommendedMax);
+    assert.strictEqual(r99999.recommendedPrice, rNone.recommendedPrice);
+  });
+
+  test('bangles/lakh bangles give a realistic reference, not thousands', async () => {
     const result = await getMarketPricing(
-      baseProduct({ category: 'Handmade Bag', price: 1200 }),
+      baseProduct({
+        category: 'Bangles',
+        name: 'लाख की चूड़ियाँ',
+        description: 'हाथ से बनी लाख की चूड़ियाँ, 125 g',
+        materials: ['Lac'],
+        weight: '125 g',
+        price: 280,
+      }),
       'English'
     );
-    assert.strictEqual(result.sourceType, 'ai_estimate');
-    assert.ok(result.recommendedPrice <= 2500, 'recommendation near user price');
+    assert.ok(result.available);
+    assert.strictEqual(result.sourceType, 'category_reference');
+    assert.ok(result.recommendedPrice > 0, 'recommendedPrice must be positive');
+    assert.ok(result.recommendedPrice < 1100, 'lakh bangles must stay in the bangles band');
+    assert.ok(result.recommendedMax < 2000, 'range must not explode to thousands');
+  });
+
+  test('unknown category stays honest: available:false, no fabricated range', async () => {
+    const result = await getMarketPricing(
+      baseProduct({
+        category: 'Quantum Levitation Drone',
+        name: 'Unmatched Thing',
+        description: 'glorp bloop zzzz no known artisan keyword here',
+        materials: [],
+        tags: [],
+      }),
+      'English'
+    );
+    assert.strictEqual(result.available, false);
+    assert.strictEqual(result.sourceType, 'unavailable');
+    assert.strictEqual(result.recommendedMin, 0);
+    assert.strictEqual(result.recommendedMax, 0);
+    assert.ok(
+      result.explanation.includes('उपलब्ध नहीं') || result.explanation.includes('not available'),
+      'explanation must stay honest about missing reference'
+    );
   });
 
   console.log('\nDone.');

@@ -99,13 +99,13 @@ export default function RecommendationScreen() {
           </View>
 
           <View style={styles.hero}>
-            <Text style={styles.heroLabel}>Suggested Price</Text>
+            <Text style={styles.heroLabel}>Your Selling Price</Text>
             <Text style={styles.heroPrice}>{priceDisplay}</Text>
             <Text style={rangeColor}>{rangeLine}</Text>
           </View>
 
           <View style={styles.priceInputRow}>
-            <Text style={styles.priceInputLabel}>अपनी price:</Text>
+            <Text style={styles.priceInputLabel}>Your Selling Price:</Text>
             <View style={styles.priceInputWrap}>
               <Text style={styles.priceInputCurrency}>₹</Text>
               <TextInput

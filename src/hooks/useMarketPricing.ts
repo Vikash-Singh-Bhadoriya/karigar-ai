@@ -19,7 +19,12 @@ export function useMarketPricing(product: ProductState | null): {
   const [pricing, setPricing] = useState<MarketPricing | null>(null);
   const [state, setState] = useState<PricingState>('unavailable');
 
-  const key = product ? `${product.name}|${product.category}|${product.price}` : '';
+  // The market reference depends ONLY on the product's own attributes.
+  // The seller's price is excluded from the key and stripped before the
+  // request, so editing the seller price never recomputes / re-fetches it.
+  const key = product
+    ? `${product.name}|${product.category}|${(product.materials ?? []).join(',')}|${product.weight}|${product.dimensions}|${product.description}|${product.language ?? ''}`
+    : '';
 
   useEffect(() => {
     if (!product) {
@@ -30,7 +35,10 @@ export function useMarketPricing(product: ProductState | null): {
     let cancelled = false;
     setState('loading');
     setPricing(null);
-    getMarketPricing({ product, language: product.language ?? 'हिंदी' }).then((result) => {
+    getMarketPricing({
+      product: { ...product, price: null },
+      language: product.language ?? 'हिंदी',
+    }).then((result) => {
       if (cancelled) return;
       setPricing(result);
       setState(result ? 'ready' : 'unavailable');

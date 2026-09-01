@@ -90,12 +90,18 @@ function categoryBaseEstimate(ref: { min: number; max: number }): number {
   return Math.round((ref.min + ref.max) / 2);
 }
 
-/** Build an explainable estimate from category + attributes + optional user price. */
+/**
+ * Build an explainable estimate from the category reference and the product's
+ * OWN attributes ONLY.
+ *
+ * The seller's asking price (product.price) is deliberately NOT an input:
+ * the market reference is a property of the product/category, so changing the
+ * seller's price must never re-anchor the range.
+ */
 function buildEstimate(product: ProductState): {
   min: number;
   max: number;
   anchor: number;
-  userBasis: boolean;
 } | null {
   const ref = resolveCategoryReference(product.category, product.name, product.description);
   if (!ref) return null;
@@ -107,18 +113,8 @@ function buildEstimate(product: ProductState): {
   // beyond their category's plausible range.
   anchor = Math.min(Math.max(anchor, ref.baseMin), Math.round(ref.baseMax * 1.15));
 
-  let userBasis = false;
-  if (product.price != null && product.price > 0) {
-    // Blend toward the artisan's own stated price when it is plausible.
-    const window = plausibilityWindow({ min: ref.baseMin, max: ref.baseMax }, 3);
-    if (product.price >= window.min && product.price <= window.max) {
-      anchor = Math.round(anchor * 0.5 + product.price * 0.5);
-      userBasis = true;
-    }
-  }
-
   const span = Math.max(10, Math.round(anchor * 0.18));
-  return { min: Math.max(1, anchor - span), max: anchor + span, anchor, userBasis };
+  return { min: Math.max(1, anchor - span), max: anchor + span, anchor };
 }
 
 /**
@@ -141,10 +137,9 @@ function roundToNearest10(n: number): number {
   return Math.round(n / 10) * 10;
 }
 
-function confidence(product: ProductState, fromMarket: boolean): PricingConfidence {
-  if (fromMarket) return 'high';
-  const hasUserPrice = product.price != null && product.price > 0;
-  return hasUserPrice ? 'medium' : 'low';
+/** Confidence is about the REFERENCE, never the seller's own price. */
+function confidence(fromMarket: boolean): PricingConfidence {
+  return fromMarket ? 'high' : 'medium';
 }
 
 /** Explain the recommendation in the artisan's language (Hindi default). */
@@ -262,12 +257,12 @@ export async function getMarketPricing(
   const recommendedMin = roundToNearest10(Math.max(1, recommendedPrice - span));
   const recommendedMax = roundToNearest10(recommendedPrice + span);
 
-  const sourceType = est.userBasis ? 'ai_estimate' : 'category_reference';
+  const sourceType = 'category_reference';
 
   const pricing: MarketPricing = {
     currency: CURRENCY,
     marketAvailable: false,
-    confidence: confidence(product, false),
+    confidence: confidence(false),
     sourceType,
     comparableProducts: [],
     recommendedMin,
