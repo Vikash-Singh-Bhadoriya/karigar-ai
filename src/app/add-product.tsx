@@ -243,7 +243,7 @@ export default function AddProductScreen() {
       return;
     }
     router.push({
-      pathname: '/processing',
+      pathname: '/product-followup',
       params: {
         imageUri: photo.uri,
         imageName: photo.fileName ?? '',

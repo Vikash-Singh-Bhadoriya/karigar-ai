@@ -10,13 +10,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PrimaryButton from '@/components/PrimaryButton';
 import { colors, radius, shadow } from '@/constants/colors';
 import { useProductAnalysis } from '@/context/ProductAnalysisContext';
-import { submitProductFollowUp, ApiError } from '@/services/api';
+import { submitProductFollowUp, analyzeProduct, ApiError } from '@/services/api';
 import type { Language } from '@/types/product';
 import {
   requestRecordingPermissions,
@@ -50,30 +50,54 @@ export default function ProductFollowUpScreen() {
     updateProduct,
     setMissingFieldState,
     clearProduct,
+    setProduct,
   } = useProductAnalysis();
   const { recorder, state } = useRecorder();
 
-  const language = (currentProduct?.language as Language | undefined) ?? 'हिंदी';
+  const params = useLocalSearchParams<{
+    imageUri?: string;
+    imageName?: string;
+    imageType?: string;
+    transcript?: string;
+    language?: string;
+  }>();
+  const imageUri = params.imageUri != null ? String(params.imageUri) : '';
+  const imageName = params.imageName != null ? String(params.imageName) : undefined;
+  const imageType = params.imageType != null ? String(params.imageType) : undefined;
+  const transcript = String(params.transcript ?? '');
+  const analysisLanguage = String(params.language ?? '');
+
+  const language = ((currentProduct?.language as Language | undefined) ??
+  (analysisLanguage || 'हिंदी')) as Language;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [answerText, setAnswerText] = useState('');
   const [askedCount, setAskedCount] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [error, setError] = useState('');
+  const [analyzeError, setAnalyzeError] = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const spokenAiIds = useRef<Set<number>>(new Set());
+  const analyzedRef = useRef(false);
 
   const busyPulse = useRef(new Animated.Value(1)).current;
   const busyLoop = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     if (!currentProduct) {
-      router.replace('/add-product');
+      // No product loaded yet -> this is the FIRST step of the AI flow, so run
+      // the single initial analysis now and then start the conversation.
+      runInitialAnalysis();
       return;
     }
+    // Product already in context (conversation continuing / resumed).
     if (followUpQuestion) {
       setMessages([{ id: ++msgId, role: 'ai', text: followUpQuestion }]);
+    } else if ((missingFields ?? []).length === 0) {
+      // Nothing left to ask — the final listing is ready, show the checkmark.
+      router.replace('/processing');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -109,7 +133,7 @@ export default function ProductFollowUpScreen() {
   useEffect(() => stopBusy, [stopBusy]);
 
   useEffect(() => {
-    if (isSubmitting) {
+    if (isSubmitting || isAnalyzing) {
       busyPulse.setValue(0.92);
       busyLoop.current = Animated.loop(
         Animated.sequence([
@@ -131,7 +155,7 @@ export default function ProductFollowUpScreen() {
     } else {
       stopBusy();
     }
-  }, [isSubmitting, stopBusy, busyPulse]);
+  }, [isSubmitting, isAnalyzing, stopBusy, busyPulse]);
 
   const friendlyError = (err: unknown): string => {
     if (err instanceof ApiError) {
@@ -143,8 +167,52 @@ export default function ProductFollowUpScreen() {
     return 'कुछ गलत हो गया। कृपया फिर कोशिश करें।';
   };
 
+  /**
+   * Single initial AI analysis — the ONE Gemini product analysis of this flow.
+   * Runs on first mount of the conversation screen (image + transcript came
+   * from add-product). Never runs twice for a session.
+   */
+  const runInitialAnalysis = useCallback(async () => {
+    if (analyzedRef.current) return; // never analyze twice
+    analyzedRef.current = true;
+    if (!imageUri || !transcript.trim()) {
+      setAnalyzeError('प्रोडक्ट का विवरण गायब है। वापस जाकर फोटो और विवरण दोबारा भेजें।');
+      setIsAnalyzing(false);
+      router.replace('/add-product');
+      return;
+    }
+    setIsAnalyzing(true);
+    setAnalyzeError('');
+    try {
+      const result = await analyzeProduct({
+        image: { uri: imageUri, fileName: imageName, mimeType: imageType },
+        transcript: transcript.trim(),
+        language: analysisLanguage || 'हिंदी',
+      });
+      console.log('[FLOW DEBUG] conversation initial analysis -> product:', result.product?.name ?? 'undefined', '| ready:', result.ready, '| missing:', JSON.stringify(result.missingFields));
+      setProduct(result.product, imageUri, result.missingFields, result.followUpQuestion);
+      const needsFollowUp =
+        result.ready === false &&
+        Array.isArray(result.missingFields) &&
+        result.missingFields.length > 0;
+      if (needsFollowUp) {
+        setMessages([{ id: ++msgId, role: 'ai', text: result.followUpQuestion ?? 'और बताइए? 😊' }]);
+      } else {
+        // Listing already complete — nothing to ask. Show the AI checkmark.
+        router.replace('/processing');
+      }
+    } catch (err) {
+      console.log('[FLOW DEBUG] conversation analysis FAILED ->', err instanceof Error ? err.message : err);
+      analyzedRef.current = false; // allow retry
+      setAnalyzeError(friendlyError(err));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [imageUri, imageName, imageType, transcript, analysisLanguage, setProduct]);
+
   const handleVoice = async () => {
     stopSpeech();
+    if (isAnalyzing) return;
     if (state.isRecording) {
       setError('');
       setIsTranscribing(true);
@@ -179,7 +247,7 @@ export default function ProductFollowUpScreen() {
 
   const handleSubmit = async () => {
     stopSpeech();
-    if (isSubmitting) return; // prevent duplicate requests
+    if (isSubmitting || isAnalyzing) return; // prevent duplicate requests
     const answer = answerText.trim();
     if (!answer) {
       setError('कृपया पहले जवाब लिखें या बोलें।');
@@ -204,7 +272,7 @@ export default function ProductFollowUpScreen() {
       setMissingFieldState(result.missingFields, result.followUpQuestion ?? null);
 
       if (result.ready || askedCount + 1 >= MAX_QUESTIONS) {
-        router.replace('/product-studio');
+        router.replace('/processing');
         return;
       }
 
@@ -282,7 +350,7 @@ export default function ProductFollowUpScreen() {
             )
           )}
 
-          {isSubmitting ? (
+          {isSubmitting || isAnalyzing ? (
             <View style={styles.aiRow}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarEmoji}>🤖</Text>
@@ -291,7 +359,7 @@ export default function ProductFollowUpScreen() {
                 <Animated.Text
                   style={[styles.typingText, { transform: [{ scale: busyPulse }] }]}
                 >
-                  समझ रहा हूँ…
+                  {isAnalyzing ? 'आपका प्रोडक्ट समझ रहा हूँ…' : 'समझ रहा हूँ…'}
                 </Animated.Text>
               </View>
             </View>
@@ -302,7 +370,7 @@ export default function ProductFollowUpScreen() {
         <View style={styles.voiceCard}>
           <Pressable
             onPress={handleVoice}
-            disabled={isSubmitting || isTranscribing}
+            disabled={isSubmitting || isTranscribing || isAnalyzing}
             style={({ pressed }) => [
               styles.micButton,
               state.isRecording && styles.micButtonActive,
@@ -315,11 +383,13 @@ export default function ProductFollowUpScreen() {
             </Text>
           </Pressable>
           <Text style={[styles.micHint, state.isRecording && styles.micHintActive]}>
-            {isTranscribing
-              ? '✍️ समझ रहा है...'
-              : state.isRecording
-                ? '🔴 सुन रहा हूँ... फिर दबाकर रोकें'
-                : 'जवाब बोलकर भी दे सकते हैं'}
+            {isAnalyzing
+              ? '⏳ AI बातचीत शुरू कर रहा है...'
+              : isTranscribing
+                ? '✍️ समझ रहा है...'
+                : state.isRecording
+                  ? '🔴 सुन रहा हूँ... फिर दबाकर रोकें'
+                  : 'जवाब बोलकर भी दे सकते हैं'}
           </Text>
         </View>
 
@@ -330,7 +400,7 @@ export default function ProductFollowUpScreen() {
             style={styles.input}
             value={answerText}
             onChangeText={setAnswerText}
-            editable={!isSubmitting}
+            editable={!isSubmitting && !isAnalyzing}
             placeholder="यहाँ जवाब लिखें..."
             placeholderTextColor={colors.inkMuted}
             multiline
@@ -339,9 +409,9 @@ export default function ProductFollowUpScreen() {
           />
         </View>
 
-        {error ? (
+        {error || analyzeError ? (
           <View style={styles.errorCard}>
-            <Text style={styles.errorText}>⚠️ {error}</Text>
+            <Text style={styles.errorText}>⚠️ {error || analyzeError}</Text>
           </View>
         ) : null}
       </ScrollView>
@@ -349,10 +419,16 @@ export default function ProductFollowUpScreen() {
       {/* CTA */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <PrimaryButton
-          icon={isSubmitting ? '⏳' : '→'}
-          label={isSubmitting ? 'समझ रहा हूँ...' : 'आगे बढ़ें'}
+          icon={analyzeError ? '🔁' : isSubmitting || isAnalyzing ? '⏳' : '→'}
+          label={
+            analyzeError
+              ? 'फिर कोशिश करें'
+              : isSubmitting || isAnalyzing
+                ? 'समझ रहा हूँ...'
+                : 'आगे बढ़ें'
+          }
           large
-          onPress={handleSubmit}
+          onPress={analyzeError ? runInitialAnalysis : handleSubmit}
         />
       </View>
     </View>
