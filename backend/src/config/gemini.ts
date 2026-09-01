@@ -85,23 +85,51 @@ export async function runGeminiWithFailover<T>(
   let lastError: unknown;
   for (let i = 0; i < keys.length; i += 1) {
     try {
-      return await execute(keys[i]);
+      const result = await execute(keys[i]);
+      if (i > 0) {
+        console.log(
+          `[GEMINI FAILOVER] ${operation} attempt ${i + 1} succeeded after transient failures`
+        );
+      }
+      return result;
     } catch (error) {
       lastError = error;
       const isTransient = isGeminiRequestError(error) && error.transient;
       if (!isTransient) {
         throw error;
       }
+      const status = isGeminiRequestError(error) ? error.status : undefined;
+      const code = isGeminiRequestError(error)
+        ? extractErrorCode(error.body)
+        : undefined;
       if (i < keys.length - 1) {
         console.log(
-          `[AI FAILOVER] ${operation} key ${i + 1} rate limited, trying key ${i + 2}`
+          `[GEMINI FAILOVER] ${operation} attempt ${i + 1} failed: ${status ?? '?'}` +
+            (code ? ` ${code}` : '') +
+            `, switching to next configured key (attempt ${i + 2})`
+        );
+      } else {
+        console.log(
+          `[GEMINI FAILOVER] ${operation} attempt ${i + 1} failed: ${status ?? '?'}` +
+            (code ? ` ${code}` : '') +
+            ' — all configured keys exhausted'
         );
       }
     }
   }
 
-  console.log(`[AI FAILOVER] all configured keys exhausted for ${operation}`);
   throw lastError;
+}
+
+/**
+ * Pulls a short Gemini error code (e.g. RESOURCE_EXHAUSTED) out of an error
+ * body for logging only. Never logs the API key or other secrets.
+ */
+function extractErrorCode(body: string): string | undefined {
+  const match = /RESOURCE_EXHAUSTED|RATE_LIMIT_EXCEEDED|UNAVAILABLE|PERMISSION_DENIED|INVALID_ARGUMENT/i.exec(
+    body
+  );
+  return match ? match[0] : undefined;
 }
 
 /** Narrowing helper for the error shape produced above. */

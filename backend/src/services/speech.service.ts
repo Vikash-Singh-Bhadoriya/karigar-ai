@@ -53,6 +53,53 @@ export function speechLanguageCode(language?: string): string {
   }
 }
 
+/**
+ * Builds the system instruction for a transcription request, driven by the
+ * user-selected language (authoritative). It pins both the language to
+ * transcribe and its required output script so Gemini never auto-romanizes or
+ * auto-translates Hindi/Marathi, and never translates English into another
+ * language. Proper nouns / brand names are kept in the faithful spoken script.
+ */
+function buildSpeechSystemInstruction(lang: string): string {
+  const verbatimRules = [
+    'You are a verbatim speech-to-text transcription engine.',
+    'Transcribe EXACTLY and ONLY what the speaker says in the audio. Do not add, remove, correct, or rephrase anything.',
+    'Do NOT summarize. Do NOT paraphrase. Do NOT translate. Do NOT transliterate. Do NOT romanize.',
+    'Return ONLY the transcription text — no commentary, no quotes, no punctuation additions, no markdown.',
+    'Preserve numbers, prices, product names, and proper noun / brand names exactly as spoken.',
+  ];
+
+  if (lang === 'mr') {
+    return [
+      ...verbatimRules,
+      'The user explicitly selected MARATHI. Transcribe the audio as MARATHI.',
+      'Write Marathi using DEVANAGARI script. Never convert Marathi into Latin/Roman characters.',
+      'Never translate Marathi into English or Hindi.',
+      'If the speaker incidentally uses an English technical/product word while speaking Marathi, keep that English word in Latin script and write the surrounding Marathi in Devanagari.',
+    ].join('\n');
+  }
+
+  if (lang === 'en') {
+    return [
+      ...verbatimRules,
+      'The user explicitly selected ENGLISH. Transcribe the audio as ENGLISH.',
+      'Write English using LATIN script.',
+      'Do NOT translate English into Hindi, Marathi, or any other language.',
+      'If the speaker incidentally uses a Hindi/Marathi word while speaking English, keep that word in Devanagari and the surrounding English in Latin.',
+    ].join('\n');
+  }
+
+  // Default / Hindi
+  return [
+    ...verbatimRules,
+    'The user explicitly selected HINDI. Transcribe the audio as HINDI.',
+    'Write Hindi using DEVANAGARI script. Never convert Hindi into Latin/Roman/Hinglish characters.',
+    'Never translate Hindi into English.',
+    'Keep proper nouns and brand names in their faithful spoken Hindi phonetic Devanagari form (e.g. "एसर के लैपटॉप", NOT "Acer ka Laptop").',
+    'If the speaker naturally uses an English technical/product word while speaking Hindi, keep that English term in Latin script and write the surrounding Hindi in Devanagari (e.g. "ये handmade cotton bag है", NOT "ye handmade cotton bag hai").',
+  ].join('\n');
+}
+
 export function mimeFromAudioName(name: string): string {
   const ext = path.extname(name).toLowerCase();
   switch (ext) {
@@ -105,25 +152,15 @@ export async function transcribeAudio(input: SpeechInput): Promise<string> {
   const languageName = { hi: 'Hindi', mr: 'Marathi', en: 'English' }[lang];
   const languageCode = speechLanguageCode(input.language);
 
-  // Explicit transcription instructions. This is the single most important
-  // lever that prevents Gemini from romanizing/transliterating Hindi speech
-  // into Hinglish. `speechConfig.languageCode` only communicates LANGUAGE
-  // (e.g. hi-IN), not SCRIPT. Without an explicit script mandate, Gemini's
-  // audio transcription defaults to Latin/Hinglish output for Hindi audio.
-  // The systemInstruction below pins the script so Hindi is rendered in
-  // Devanagari while English stays Latin, and mixed speech keeps each
-  // language's native script (code-switching).
-  const systemInstruction = [
-    'You are a verbatim speech-to-text transcription engine.',
-    'Transcribe EXACTLY what the speaker says in the audio. Do not add, remove, or rephrase anything.',
-    'Do NOT translate. Do NOT transliterate. Do NOT romanize. Do NOT convert spoken Hindi into Latin/Roman/Hinglish characters.',
-    'When the speaker speaks Hindi, write the Hindi words using DEVANAGARI script (e.g. लाख की चूड़ियाँ, not "lac ke chudiya").',
-    'When the speaker speaks Marathi, write the Marathi words using DEVANAGARI script.',
-    'When the speaker speaks English, write English using Latin script.',
-    'When the speaker code-switches between Hindi and English within one utterance, preserve the natural code-switching and use the appropriate native script for each language (Devanagari for Hindi/Marathi portions, Latin for English portions).',
-    'Return ONLY the transcription text with no commentary, no quotes, no punctuation corrections, and no markdown.',
-    'Do not summarize, paraphrase, or correct the speaker into another language. Preserve numbers, prices, and product names exactly as spoken.',
-  ].join('\n');
+  // The user-selected language is AUTHORITATIVE. It must drive both the
+  // transcription language and the required output script — never depend on
+  // Gemini auto-inferring the language/script. `speechConfig.languageCode`
+  // (e.g. hi-IN) only communicates the LANGUAGE, not the SCRIPT; without an
+  // explicit per-language script mandate Gemini still defaults to Latin /
+  // Hinglish for Hindi/Marathi audio. The systemInstruction is built from the
+  // selected language so it pins the language + script together and forbids
+  // translation/transliteration/romanization/normalization.
+  const systemInstruction = buildSpeechSystemInstruction(lang);
 
   const run = async (): Promise<string> => {
     const model = getSpeechModel();
@@ -145,7 +182,7 @@ export async function transcribeAudio(input: SpeechInput): Promise<string> {
               {
                 parts: [
                   { inline_data: { mime_type: input.mimeType, data: input.audio.toString('base64') } },
-                  { text: `Transcribe the following ${languageName} audio verbatim.` },
+                  { text: `Transcribe this ${languageName} audio verbatim (as ${languageName}), preserving its native script.` },
                 ],
               },
             ],
