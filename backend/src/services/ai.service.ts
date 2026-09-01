@@ -239,11 +239,11 @@ function ensureTags(product: ProductState): ProductState {
 function buildFollowUpQuestion(field: ProductField, lang: Lang, isReask: boolean): string {
   const base = FOLLOW_UP[field][lang];
   if (isReask) {
-    if (lang === 'hi') return `कोई बात नहीं 😊 ${base}`;
-    if (lang === 'mr') return `काही हरकत नाही 😊 ${base}`;
-    return `No problem 😊 ${base}`;
+    if (lang === 'hi') return `कोई बात नहीं ${base}`;
+    if (lang === 'mr') return `काही हरकत नाही ${base}`;
+    return `No problem ${base}`;
   }
-  const lead = { hi: 'बहुत बढ़िया! 😊', mr: 'छान! 😊', en: 'Great! 😊' }[lang];
+  const lead = { hi: 'बहुत बढ़िया!', mr: 'छान!', en: 'Great!' }[lang];
   return `${lead} ${base}`;
 }
 
