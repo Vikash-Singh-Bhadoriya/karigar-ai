@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import type { Product } from '../types';
-import { getProducts } from '../api/client';
 import ProductCard from '../components/ProductCard';
+import { useRealtimeProducts } from '../hooks/useRealtimeProducts';
 
 const CATEGORIES = [
   { name: 'Saree', emoji: '🧣' },
@@ -14,12 +12,12 @@ const CATEGORIES = [
   { name: 'Clothing', emoji: '👘' },
 ];
 
-const fadeUp = {
+const fadeUp: any = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
 };
 
-const staggerContainer = {
+const staggerContainer: any = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -28,15 +26,7 @@ const staggerContainer = {
 };
 
 export default function HomePage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getProducts({ limit: 8 })
-      .then((res) => setProducts(res.products))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { products, loading } = useRealtimeProducts({ limit: 8 });
 
   return (
     <div className="overflow-hidden">
