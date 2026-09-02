@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import type { Product } from '../types';
 import { getProduct, getImageUrl } from '../api/client';
+import { useCart } from '../contexts/CartContext';
 
 function formatPrice(price: number | null): string {
   if (price == null) return '—';
@@ -19,6 +20,7 @@ export default function ProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     if (!id) return;
@@ -145,12 +147,20 @@ export default function ProductPage() {
             )}
           </div>
 
-          <Link
-            to={`/order/${product.id}`}
-            className="inline-flex items-center justify-center gap-2 w-full bg-amber-600 hover:bg-amber-700 text-white px-6 py-3.5 rounded-xl font-semibold text-lg transition-colors shadow-lg shadow-amber-200"
-          >
-            🛒 इस प्रोडक्ट को ऑर्डर करें
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 w-full mt-6">
+            <button
+              onClick={() => addToCart(product)}
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-6 py-3.5 rounded-xl font-semibold text-lg transition-colors"
+            >
+              🛒 Add to Cart
+            </button>
+            <Link
+              to={`/order/${product.id}`}
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-700 hover:to-orange-800 text-white px-6 py-3.5 rounded-xl font-semibold text-lg transition-colors shadow-lg shadow-amber-900/20"
+            >
+              ⚡ Buy Now
+            </Link>
+          </div>
           <p className="text-center text-xs text-stone-500 mt-2">Order This Product</p>
         </div>
       </div>
