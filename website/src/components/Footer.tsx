@@ -7,11 +7,13 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* About */}
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-2xl">🎨</span>
-              <span className="text-lg font-bold text-white">
-                Karigar<span className="text-amber-500">AI</span>
-              </span>
+            <div className="flex items-center mb-4">
+              <img 
+                src="/assets/brand/logo-flat.png" 
+                alt="KarigarAI logo" 
+                loading="lazy" 
+                className="h-10 w-auto object-contain brightness-0 invert opacity-90"
+              />
             </div>
             <p className="text-sm leading-relaxed">
               कारीगर AI — भारतीय कारीगरों का डिजिटल बाज़ार
