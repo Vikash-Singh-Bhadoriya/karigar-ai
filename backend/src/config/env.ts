@@ -11,6 +11,6 @@ export const config = {
   geminiSpeechModel: process.env.GEMINI_SPEECH_MODEL ?? 'gemini-3.5-flash-lite',
   uploadsDir: path.resolve(process.cwd(), 'uploads'),
   supabaseUrl: process.env.SUPABASE_URL ?? '',
-  supabaseSecretKey: process.env.SUPABASE_SECRET_KEY ?? '',
+  supabaseSecretKey: process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_KEY ?? '',
   supabaseStorageBucket: process.env.SUPABASE_STORAGE_BUCKET ?? 'product-images',
 };

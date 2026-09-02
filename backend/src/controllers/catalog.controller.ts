@@ -2,6 +2,12 @@ import type { Request, Response } from 'express';
 import * as catalogService from '../services/catalog.service';
 import { storeProductImage } from '../services/imageStorage.service';
 
+// pg error messages never contain credentials, so they are safe to surface and
+// critical for diagnosing connection/schema problems in this prototype.
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Products                                                           */
 /* ------------------------------------------------------------------ */
@@ -20,7 +26,7 @@ export const listProducts = async (req: Request, res: Response): Promise<void> =
     res.json({ success: true, data });
   } catch (error) {
     console.error('listProducts error:', error);
-    res.status(500).json({ success: false, message: 'Failed to list products' });
+    res.status(500).json({ success: false, message: errorMessage(error, 'Failed to list products') });
   }
 };
 
@@ -39,7 +45,7 @@ export const getProduct = async (req: Request, res: Response): Promise<void> => 
     res.json({ success: true, data: product });
   } catch (error) {
     console.error('getProduct error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get product' });
+    res.status(500).json({ success: false, message: errorMessage(error, 'Failed to get product') });
   }
 };
 
@@ -93,8 +99,7 @@ export const publishProduct = async (req: Request, res: Response): Promise<void>
     res.status(201).json({ success: true, data: product });
   } catch (error) {
     console.error('publishProduct error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to publish product';
-    res.status(500).json({ success: false, message });
+    res.status(500).json({ success: false, message: errorMessage(error, 'Failed to publish product') });
   }
 };
 
@@ -113,7 +118,7 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
     res.json({ success: true, data: product });
   } catch (error) {
     console.error('updateProduct error:', error);
-    res.status(500).json({ success: false, message: 'Failed to update product' });
+    res.status(500).json({ success: false, message: errorMessage(error, 'Failed to update product') });
   }
 };
 
@@ -132,7 +137,7 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
     res.json({ success: true, message: 'Product deleted' });
   } catch (error) {
     console.error('deleteProduct error:', error);
-    res.status(500).json({ success: false, message: 'Failed to delete product' });
+    res.status(500).json({ success: false, message: errorMessage(error, 'Failed to delete product') });
   }
 };
 
@@ -142,7 +147,7 @@ export const getCategories = async (_req: Request, res: Response): Promise<void>
     res.json({ success: true, data: categories });
   } catch (error) {
     console.error('getCategories error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get categories' });
+    res.status(500).json({ success: false, message: errorMessage(error, 'Failed to get categories') });
   }
 };
 
@@ -179,7 +184,7 @@ export const placeOrder = async (req: Request, res: Response): Promise<void> => 
     res.status(201).json({ success: true, data: order });
   } catch (error) {
     console.error('placeOrder error:', error);
-    res.status(500).json({ success: false, message: 'Failed to place order' });
+    res.status(500).json({ success: false, message: errorMessage(error, 'Failed to place order') });
   }
 };
 
@@ -189,6 +194,6 @@ export const listOrders = async (_req: Request, res: Response): Promise<void> =>
     res.json({ success: true, data: orders });
   } catch (error) {
     console.error('listOrders error:', error);
-    res.status(500).json({ success: false, message: 'Failed to list orders' });
+    res.status(500).json({ success: false, message: errorMessage(error, 'Failed to list orders') });
   }
 };
