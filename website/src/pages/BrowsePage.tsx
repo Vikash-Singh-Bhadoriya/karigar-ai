@@ -1,25 +1,43 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getCategories } from '../api/client';
+import type { Product } from '../types';
+import { getProducts, getCategories } from '../api/client';
 import ProductCard from '../components/ProductCard';
-import { useRealtimeProducts } from '../hooks/useRealtimeProducts';
 
 export default function BrowsePage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
 
-  const { products, total, loading } = useRealtimeProducts({
-    search: search || undefined,
-    category: selectedCategory || undefined,
-    minPrice: minPrice || undefined,
-    maxPrice: maxPrice || undefined,
-    limit: 20
-  });
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getProducts({
+        search: search || undefined,
+        category: selectedCategory || undefined,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        limit: 20,
+      });
+      setProducts(res.products);
+      setTotal(res.total);
+    } catch {
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [search, selectedCategory, minPrice, maxPrice]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   useEffect(() => {
     getCategories().then(setCategories).catch(() => {});
@@ -32,6 +50,7 @@ export default function BrowsePage() {
     if (minPrice) params.minPrice = minPrice;
     if (maxPrice) params.maxPrice = maxPrice;
     setSearchParams(params);
+    fetchProducts();
   };
 
   const clearFilters = () => {
