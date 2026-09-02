@@ -22,7 +22,6 @@ app.use(healthRoutes);
 app.use(productRoutes);
 app.use(aiRoutes);
 app.use(speechRoutes);
-app.use(catalogRoutes);
 
 // Marketplace catalog (catalog.routes.ts already defines full /api/catalog… paths)
 app.use(catalogRoutes);
@@ -36,9 +35,9 @@ app.listen(config.port, async () => {
   console.log(`KarigarAI backend running on http://localhost:${config.port}`);
 
   // Check database connectivity via Supabase REST API
-  if (config.supabaseUrl && config.supabaseServiceKey) {
+  if (config.supabaseUrl && config.supabaseSecretKey) {
     try {
-      const sb = createClient(config.supabaseUrl, config.supabaseServiceKey);
+      const sb = createClient(config.supabaseUrl, config.supabaseSecretKey);
       const { error } = await sb.from('products').select('id').limit(1);
       console.log(error ? `⚠️ Database not reachable: ${error.message}` : '✅ Database connected (Supabase)');
     } catch (e: any) {
