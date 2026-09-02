@@ -4,19 +4,13 @@ import { motion } from 'framer-motion';
 import type { Product } from '../types';
 import { getProducts } from '../api/client';
 import ProductCard from '../components/ProductCard';
+import VillageScenery from '../components/VillageScenery';
 
-const CATEGORIES = [
-  { name: 'Saree', emoji: '🧣' },
-  { name: 'Pottery', emoji: '🏺' },
-  { name: 'Bag', emoji: '👜' },
-  { name: 'Jewellery', emoji: '💎' },
-  { name: 'Home Decor', emoji: '🏠' },
-  { name: 'Clothing', emoji: '👘' },
-];
+
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } }
 };
 
 const staggerContainer = {
@@ -83,11 +77,29 @@ export default function HomePage() {
         <motion.div 
           initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }}
           variants={fadeUp}
-          className="text-center mb-16"
+          className="text-center mb-16 relative"
         >
-          <h2 className="text-3xl font-bold text-stone-900 font-serif mb-4 drop-shadow-sm">हमारी कला — The Craftsmanship</h2>
-          <div className="h-1 w-24 bg-amber-600 mx-auto rounded-full mb-6 shadow-md"></div>
-          <p className="text-stone-700 max-w-2xl mx-auto text-lg font-medium drop-shadow-sm">
+          {/* Decorative Branches (Left & Right) */}
+          <div className="absolute left-[5%] md:left-[15%] -top-12 md:-top-8 text-7xl md:text-8xl opacity-30 filter sepia-[0.3] saturate-[1.2] rotate-[-20deg] pointer-events-none origin-bottom animate-[swayScene_6s_ease-in-out_infinite]">🌿</div>
+          <div className="absolute right-[5%] md:right-[15%] -top-12 md:-top-8 text-7xl md:text-8xl opacity-30 filter sepia-[0.3] saturate-[1.2] rotate-[20deg] scale-x-[-1] pointer-events-none origin-bottom animate-[swayScene_5s_ease-in-out_infinite_reverse]">🌿</div>
+
+          {/* Floating Petals near header */}
+          <div className="absolute left-[25%] -top-4 text-3xl opacity-50 text-rose-300 animate-[bounce_4s_infinite]">🌸</div>
+          <div className="absolute right-[25%] top-2 text-2xl opacity-40 text-rose-300 animate-[bounce_3s_infinite_reverse]">🌸</div>
+
+          <h2 className="text-3xl md:text-4xl font-bold text-stone-900 font-serif mb-4 drop-shadow-sm flex items-center justify-center gap-3">
+            <span className="text-rose-400 opacity-80 text-2xl animate-pulse">🌺</span>
+            हमारी कला — The Craftsmanship
+            <span className="text-rose-400 opacity-80 text-2xl animate-pulse">🌺</span>
+          </h2>
+          
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="h-1 w-12 md:w-20 bg-amber-600 rounded-full shadow-md"></div>
+            <span className="text-amber-500 text-2xl animate-[spinSlow_20s_linear_infinite]">❁</span>
+            <div className="h-1 w-12 md:w-20 bg-amber-600 rounded-full shadow-md"></div>
+          </div>
+          
+          <p className="text-stone-700 max-w-2xl mx-auto text-lg font-medium drop-shadow-sm relative z-10 px-4">
             Witness the intricate processes passed down through generations. From delicate brush strokes to rhythmic weaving, our artisans pour their soul into every creation.
           </p>
         </motion.div>
@@ -186,35 +198,130 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="max-w-7xl mx-auto px-4 py-24 relative z-10">
-        <motion.div 
-          initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl font-bold text-stone-900 font-serif mb-4 drop-shadow-sm">Explore Categories</h2>
-          <div className="h-1 w-24 bg-amber-600 mx-auto rounded-full shadow-md"></div>
-        </motion.div>
-        
-        <motion.div 
-          initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer}
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6"
-        >
-          {CATEGORIES.map((cat) => (
-            <motion.div key={cat.name} variants={fadeUp} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                to={`/browse?category=${encodeURIComponent(cat.name)}`}
-                className="flex flex-col items-center justify-center p-6 bg-white/70 backdrop-blur-md rounded-2xl border border-white/60 hover:border-amber-300 hover:shadow-2xl hover:shadow-amber-200/40 hover:bg-white/90 transition-all group h-full shadow-lg"
-              >
-                <span className="text-4xl mb-4 transform transition-transform duration-300 drop-shadow-md">
-                  {cat.emoji}
-                </span>
-                <span className="text-sm font-bold text-stone-800 drop-shadow-sm">{cat.name}</span>
-              </Link>
+      {/* Our Promise & Trust Badges */}
+      <section className="py-28 px-4 bg-[#FFFCF8] relative z-10 overflow-hidden">
+        {/* Decorative corner mandalas (faint) */}
+        <div className="absolute top-0 left-0 w-64 h-64 bg-amber-600/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+        <div className="absolute bottom-0 right-0 w-80 h-80 bg-orange-600/5 rounded-full blur-3xl translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
+
+        <div className="max-w-7xl mx-auto relative z-10">
+          <motion.div 
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
+            className="text-center mb-20"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-amber-950 font-serif mb-6 drop-shadow-sm">
+              Our Promise to India
+            </h2>
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <div className="h-px w-12 bg-amber-300"></div>
+              <div className="w-3 h-3 rotate-45 bg-amber-500"></div>
+              <div className="h-px w-12 bg-amber-300"></div>
+            </div>
+            <p className="text-stone-600 max-w-2xl mx-auto text-lg font-medium leading-relaxed">
+              More than just a marketplace, KarigarAI is a movement to digitize rural craftsmanship and build a truly self-reliant India.
+            </p>
+          </motion.div>
+
+          <motion.div 
+            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer}
+            className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12"
+          >
+            {/* Trust Badge 1 */}
+            <motion.div variants={fadeUp} className="flex flex-col items-center text-center p-10 bg-white/60 backdrop-blur-sm rounded-[2rem] border border-amber-100 shadow-[0_8px_30px_rgb(217,119,6,0.06)] group hover:-translate-y-2 hover:shadow-[0_20px_40px_rgb(217,119,6,0.12)] hover:bg-white transition-all duration-500 relative overflow-hidden">
+              {/* Giant Faint Watermark */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-9xl opacity-[0.02] text-amber-900 pointer-events-none group-hover:rotate-12 transition-transform duration-700">🪷</div>
+              
+              <div className="absolute inset-0 border-2 border-dashed border-amber-200/40 rounded-[2rem] m-2 pointer-events-none">
+                <div className="absolute -top-2.5 -left-2.5 text-amber-200/60 text-lg rotate-45">✥</div>
+                <div className="absolute -top-2.5 -right-2.5 text-amber-200/60 text-lg rotate-45">✥</div>
+                <div className="absolute -bottom-2.5 -left-2.5 text-amber-200/60 text-lg rotate-45">✥</div>
+                <div className="absolute -bottom-2.5 -right-2.5 text-amber-200/60 text-lg rotate-45">✥</div>
+              </div>
+              <div className="relative w-24 h-24 mb-8 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
+                <div className="absolute inset-0 bg-amber-100 rounded-full animate-[spin_10s_linear_infinite] opacity-50 border border-dashed border-amber-400"></div>
+                <div className="absolute inset-2 bg-gradient-to-br from-amber-50 to-orange-100 rounded-full shadow-inner border border-amber-200/50"></div>
+                {/* Custom SVG for Growth/Viksit */}
+                <svg className="w-10 h-10 text-amber-700 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-amber-950 font-serif mb-2 relative z-10">Viksit Bharat Vision</h3>
+              <div className="flex gap-1 justify-center mb-4 opacity-40">
+                <span className="w-1 h-1 rounded-full bg-amber-800"></span>
+                <span className="w-1 h-1 rounded-full bg-amber-800"></span>
+                <span className="w-1 h-1 rounded-full bg-amber-800"></span>
+              </div>
+              <p className="text-stone-600 leading-relaxed font-medium relative z-10">
+                Empowering rural economies by bridging the digital divide. We enable artisans to go online using just their native voice and a smartphone camera.
+              </p>
             </motion.div>
-          ))}
-        </motion.div>
+
+            {/* Trust Badge 2 */}
+            <motion.div variants={fadeUp} className="flex flex-col items-center text-center p-10 bg-white/60 backdrop-blur-sm rounded-[2rem] border border-amber-100 shadow-[0_8px_30px_rgb(217,119,6,0.06)] group hover:-translate-y-2 hover:shadow-[0_20px_40px_rgb(217,119,6,0.12)] hover:bg-white transition-all duration-500 relative overflow-hidden">
+              {/* Giant Faint Watermark */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-9xl opacity-[0.02] text-orange-900 pointer-events-none group-hover:rotate-12 transition-transform duration-700">❁</div>
+
+              <div className="absolute inset-0 border-2 border-dashed border-orange-200/40 rounded-[2rem] m-2 pointer-events-none">
+                <div className="absolute -top-2.5 -left-2.5 text-orange-200/60 text-lg rotate-45">✥</div>
+                <div className="absolute -top-2.5 -right-2.5 text-orange-200/60 text-lg rotate-45">✥</div>
+                <div className="absolute -bottom-2.5 -left-2.5 text-orange-200/60 text-lg rotate-45">✥</div>
+                <div className="absolute -bottom-2.5 -right-2.5 text-orange-200/60 text-lg rotate-45">✥</div>
+              </div>
+              <div className="relative w-24 h-24 mb-8 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
+                <div className="absolute inset-0 bg-orange-100 rounded-full animate-[spin_10s_linear_infinite_reverse] opacity-50 border border-dashed border-orange-400"></div>
+                <div className="absolute inset-2 bg-gradient-to-br from-orange-50 to-amber-100 rounded-full shadow-inner border border-orange-200/50"></div>
+                {/* Custom SVG for Direct to Artisan (Hands) */}
+                <svg className="w-10 h-10 text-orange-700 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-amber-950 font-serif mb-2 relative z-10">Direct to Artisan</h3>
+              <div className="flex gap-1 justify-center mb-4 opacity-40">
+                <span className="w-1 h-1 rounded-full bg-orange-800"></span>
+                <span className="w-1 h-1 rounded-full bg-orange-800"></span>
+                <span className="w-1 h-1 rounded-full bg-orange-800"></span>
+              </div>
+              <p className="text-stone-600 leading-relaxed font-medium relative z-10">
+                No middlemen, no hidden fees. When you purchase on KarigarAI, you are directly supporting the livelihoods of traditional weavers and craftsmen.
+              </p>
+            </motion.div>
+
+            {/* Trust Badge 3 */}
+            <motion.div variants={fadeUp} className="flex flex-col items-center text-center p-10 bg-white/60 backdrop-blur-sm rounded-[2rem] border border-amber-100 shadow-[0_8px_30px_rgb(217,119,6,0.06)] group hover:-translate-y-2 hover:shadow-[0_20px_40px_rgb(217,119,6,0.12)] hover:bg-white transition-all duration-500 relative overflow-hidden">
+              {/* Giant Faint Watermark */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-9xl opacity-[0.02] text-stone-900 pointer-events-none group-hover:-rotate-12 transition-transform duration-700">✺</div>
+
+              <div className="absolute inset-0 border-2 border-dashed border-stone-200/40 rounded-[2rem] m-2 pointer-events-none">
+                <div className="absolute -top-2.5 -left-2.5 text-stone-200/60 text-lg rotate-45">✥</div>
+                <div className="absolute -top-2.5 -right-2.5 text-stone-200/60 text-lg rotate-45">✥</div>
+                <div className="absolute -bottom-2.5 -left-2.5 text-stone-200/60 text-lg rotate-45">✥</div>
+                <div className="absolute -bottom-2.5 -right-2.5 text-stone-200/60 text-lg rotate-45">✥</div>
+              </div>
+              <div className="relative w-24 h-24 mb-8 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
+                <div className="absolute inset-0 bg-stone-100 rounded-full animate-[spin_10s_linear_infinite] opacity-50 border border-dashed border-stone-400"></div>
+                <div className="absolute inset-2 bg-gradient-to-br from-stone-50 to-amber-50 rounded-full shadow-inner border border-stone-200/50"></div>
+                {/* Custom SVG for Authentic/Sparkle */}
+                <svg className="w-10 h-10 text-stone-700 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-amber-950 font-serif mb-2 relative z-10">Authentic Crafts</h3>
+              <div className="flex gap-1 justify-center mb-4 opacity-40">
+                <span className="w-1 h-1 rounded-full bg-stone-800"></span>
+                <span className="w-1 h-1 rounded-full bg-stone-800"></span>
+                <span className="w-1 h-1 rounded-full bg-stone-800"></span>
+              </div>
+              <p className="text-stone-600 leading-relaxed font-medium relative z-10">
+                Every product tells a story. We guarantee the authenticity of our catalog, ensuring you receive genuine heritage crafts directly from the source.
+              </p>
+            </motion.div>
+          </motion.div>
+        </div>
       </section>
+
+      {/* Traditional Village Scenery Section (Bottom) */}
+      <VillageScenery />
     </div>
   );
 }
+

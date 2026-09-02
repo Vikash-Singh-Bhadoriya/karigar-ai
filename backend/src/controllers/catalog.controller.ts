@@ -1,5 +1,11 @@
 import type { Request, Response } from 'express';
+import { createClient } from '@supabase/supabase-js';
+import { config } from '../config/env';
 import * as catalogService from '../services/catalog.service';
+import * as fs from 'fs';
+
+// Supabase client for Storage uploads
+const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
 
 /* ------------------------------------------------------------------ */
 /*  Products                                                           */
@@ -46,11 +52,30 @@ export const publishProduct = async (req: Request, res: Response): Promise<void>
   try {
     const body = req.body ?? {};
 
-    // If a file was uploaded via multer, construct the image URL
+    // Upload image to Supabase Storage if a file was uploaded via multer
     let imageUrl: string | null = null;
     if (req.file) {
-      // Build a URL relative to the backend so the website can load it
-      imageUrl = `/uploads/${req.file.filename}`;
+      const fileName = `${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const fileBuffer = fs.readFileSync(req.file.path);
+      
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, fileBuffer, {
+          contentType: req.file.mimetype,
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error('Supabase Storage upload error:', uploadError);
+        // Fallback to local URL if Storage upload fails
+        imageUrl = `/uploads/${req.file.filename}`;
+      } else {
+        // Get the public URL from Supabase Storage
+        const { data: urlData } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(fileName);
+        imageUrl = urlData.publicUrl;
+      }
     } else if (typeof body.image_url === 'string' && body.image_url) {
       imageUrl = body.image_url;
     }
