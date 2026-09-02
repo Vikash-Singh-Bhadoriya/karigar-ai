@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import * as catalogService from '../services/catalog.service';
+import { storeProductImage } from '../services/imageStorage.service';
 
 /* ------------------------------------------------------------------ */
 /*  Products                                                           */
@@ -46,11 +47,14 @@ export const publishProduct = async (req: Request, res: Response): Promise<void>
   try {
     const body = req.body ?? {};
 
-    // If a file was uploaded via multer, construct the image URL
+    // If a file was uploaded via multer, persist it in Supabase Storage and use
+    // the resulting persistent public URL for the catalog image.
     let imageUrl: string | null = null;
     if (req.file) {
-      // Build a URL relative to the backend so the website can load it
-      imageUrl = `/uploads/${req.file.filename}`;
+      imageUrl = await storeProductImage({
+        buffer: req.file.buffer,
+        contentType: req.file.mimetype || 'image/jpeg',
+      });
     } else if (typeof body.image_url === 'string' && body.image_url) {
       imageUrl = body.image_url;
     }
@@ -89,7 +93,8 @@ export const publishProduct = async (req: Request, res: Response): Promise<void>
     res.status(201).json({ success: true, data: product });
   } catch (error) {
     console.error('publishProduct error:', error);
-    res.status(500).json({ success: false, message: 'Failed to publish product' });
+    const message = error instanceof Error ? error.message : 'Failed to publish product';
+    res.status(500).json({ success: false, message });
   }
 };
 
