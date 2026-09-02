@@ -9,6 +9,7 @@ import {
   type PublishedProduct,
 } from '@/context/productFlow';
 import { loadPublishedProducts, savePublishedProducts } from '@/services/productStorage';
+import { publishToServer } from '@/services/api';
 
 interface ProductAnalysisContextValue {
   /** Single source of truth for the product currently going through the AI flow. */
@@ -140,8 +141,19 @@ export function ProductAnalysisProvider({ children }: { children: ReactNode }) {
 
     // Editing session is done — next publish is a CREATE until a product is re-opened.
     setEditingProductId(null);
+
+    // Marketplace publish is fire-and-forget so a backend failure never blocks local publishing.
+    publishToServer({
+      product: currentProduct,
+      imageUri: sourceImageUri,
+      sellingScope,
+      artisanLocation: currentProduct.sellerLocation,
+    }).catch(() => {
+      // Swallowed — product is already saved locally in AsyncStorage.
+    });
+
     return item;
-  }, [currentProduct, sourceImageUri, editingProductId, publishedProducts]);
+  }, [currentProduct, sourceImageUri, editingProductId, publishedProducts, sellingScope]);
 
   const value = useMemo(
     () => ({
