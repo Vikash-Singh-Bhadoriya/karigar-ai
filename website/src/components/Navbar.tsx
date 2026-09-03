@@ -73,18 +73,17 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex items-center justify-between h-16 sm:h-20">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center shadow-inner border border-amber-200 group-hover:scale-110 group-hover:rotate-[15deg] group-hover:shadow-[0_0_15px_rgba(217,119,6,0.3)] transition-all duration-500 relative">
-                <span className="text-2xl absolute group-hover:animate-[spin_4s_linear_infinite]">🪷</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-2xl sm:text-3xl font-bold text-amber-950 font-serif tracking-tight leading-none group-hover:text-orange-800 transition-colors">
-                  Karigar<span className="text-orange-600">AI</span>
-                </span>
-                <span className="text-[0.65rem] sm:text-xs text-stone-500 font-medium tracking-widest uppercase mt-0.5 group-hover:text-amber-700 transition-colors">
-                  Handcrafted with Pride
-                </span>
-              </div>
+            {/* Logo */}
+            <Link to="/" className="flex items-center group">
+              <picture>
+                <source media="(min-width: 640px)" srcSet="/assets/brand/logo-full.png" />
+                <img 
+                  src="/assets/brand/logo-symbol.png" 
+                  alt="KarigarAI logo" 
+                  loading="eager"
+                  className="h-10 sm:h-12 w-auto object-contain transition-transform duration-500 group-hover:scale-105"
+                />
+              </picture>
             </Link>
 
             {/* Desktop Nav */}

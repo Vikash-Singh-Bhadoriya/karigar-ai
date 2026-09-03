@@ -2,14 +2,59 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="shortcut icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Open Graph / Social Meta Tags -->
+    <meta property="og:title" content="KarigarAI | Empowering India's Artisans" />
+    <meta property="og:description" content="Connecting rural Indian artisans with global buyers through AI." />
+    <meta property="og:image" content="/assets/brand/app-icon-512.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="/assets/brand/app-icon-512.png" />
+    
     <title>KarigarAI | Empowering India's Artisans</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
+    <!-- App Splash Screen (Outside React Root) -->
+    <div id="splash-screen" class="karigar-splash">
+      <style>
+        .karigar-splash {
+          position: fixed;
+          top: 0;
+          left: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100vh;
+          width: 100vw;
+          background-color: #FFFCF8;
+          z-index: 9999;
+          margin: 0;
+          padding: 0;
+        }
+        .karigar-splash-logo {
+          width: 80px;
+          height: auto;
+          animation: karigarPulse 1.5s ease-in-out infinite;
+          filter: drop-shadow(0 4px 6px rgba(217, 119, 6, 0.2));
+        }
+        @keyframes karigarPulse {
+          0% { transform: scale(0.95); opacity: 0.7; }
+          50% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(0.95); opacity: 0.7; }
+        }
+      </style>
+      <img src="/assets/brand/logo-symbol.png" alt="Loading KarigarAI..." class="karigar-splash-logo" />
+    </div>
+
+    <!-- React Root -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

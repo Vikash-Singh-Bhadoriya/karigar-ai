@@ -35,12 +35,14 @@ export default function VillageScenery() {
           filter: sepia(0.4) hue-rotate(40deg) saturate(0.8) opacity(0.35);
           position: absolute;
           bottom: 10px;
-          font-size: 8rem;
         }
         .village-craftsman {
           filter: sepia(0.4) saturate(1.2) opacity(0.6);
           position: absolute;
           bottom: 15px;
+        }
+        @media (max-width: 768px) {
+          .village-mural-tree { font-size: 4rem !important; }
         }
       `}</style>
 
@@ -63,31 +65,39 @@ export default function VillageScenery() {
       </svg>
 
       {/* Scenery: Trees & Peacocks */}
-      <div className="village-mural-tree" style={{ left: '15%' }}>🌳</div>
-      <div className="village-mural-tree" style={{ left: '50%', bottom: '25px', fontSize: '6rem' }}>🌲</div>
-      <div className="village-mural-tree" style={{ left: '80%' }}>🌳</div>
-      <div className="village-mural-animal text-5xl" style={{ left: '20%', bottom: '35px', animation: 'swayScene 4s ease-in-out infinite' }}>🦚</div>
-      <div className="village-mural-animal text-5xl" style={{ left: '82%', bottom: '30px', animation: 'swayScene 5s ease-in-out infinite reverse' }}>🦚</div>
+      <div className="village-mural-tree text-[4rem] md:text-[8rem]" style={{ left: '15%' }}>🌳</div>
+      <div className="village-mural-tree text-[3rem] md:text-[6rem]" style={{ left: '50%', bottom: '25px' }}>🌲</div>
+      <div className="village-mural-tree text-[4rem] md:text-[8rem]" style={{ left: '80%' }}>🌳</div>
+      <div className="village-mural-animal text-2xl md:text-5xl" style={{ left: '20%', bottom: '35px', animation: 'swayScene 4s ease-in-out infinite' }}>🦚</div>
+      <div className="village-mural-animal text-2xl md:text-5xl" style={{ left: '82%', bottom: '30px', animation: 'swayScene 5s ease-in-out infinite reverse' }}>🦚</div>
 
       {/* Scenery: Craftsmen & Women (Working) */}
-      <div className="village-craftsman text-5xl" style={{ left: '12%', animation: 'bobScene 2.2s infinite' }}>👩🏽‍🎨🥻</div>
-      <div className="village-craftsman text-3xl md:text-4xl text-amber-900 font-bold" style={{ left: '16%', bottom: '60px', opacity: 0.4 }}>embroidery</div>
-
-      <div className="village-craftsman text-5xl" style={{ left: '38%', animation: 'bobScene 2s infinite' }}>👩🏽‍🌾🧶</div>
-      <div className="village-craftsman text-3xl md:text-4xl text-amber-900 font-bold" style={{ left: '42%', bottom: '60px', opacity: 0.4 }}>weaving</div>
+      <div className="village-craftsman flex flex-col items-center" style={{ left: '10%', animation: 'bobScene 2.2s infinite' }}>
+        <div className="text-3xl md:text-5xl">👩🏽‍🎨🥻</div>
+        <div className="text-[10px] md:text-3xl text-amber-900 font-bold opacity-40 mt-1 md:mt-2">embroidery</div>
+      </div>
       
-      <div className="village-craftsman text-5xl" style={{ left: '62%', animation: 'bobScene 2.5s infinite reverse' }}>👨🏽‍🎨🏺</div>
-      <div className="village-craftsman text-3xl md:text-4xl text-amber-900 font-bold" style={{ left: '66%', bottom: '60px', opacity: 0.4 }}>pottery</div>
+      <div className="village-craftsman flex flex-col items-center" style={{ left: '35%', animation: 'bobScene 2s infinite' }}>
+        <div className="text-3xl md:text-5xl">👩🏽‍🌾🧶</div>
+        <div className="text-[10px] md:text-3xl text-amber-900 font-bold opacity-40 mt-1 md:mt-2">weaving</div>
+      </div>
+      
+      <div className="village-craftsman flex flex-col items-center" style={{ left: '60%', animation: 'bobScene 2.5s infinite reverse' }}>
+        <div className="text-3xl md:text-5xl">👨🏽‍🎨🏺</div>
+        <div className="text-[10px] md:text-3xl text-amber-900 font-bold opacity-40 mt-1 md:mt-2">pottery</div>
+      </div>
 
-      <div className="village-craftsman text-5xl" style={{ left: '85%', animation: 'bobScene 2.3s infinite reverse' }}>👨🏽‍🔧🪵</div>
-      <div className="village-craftsman text-3xl md:text-4xl text-amber-900 font-bold" style={{ left: '88%', bottom: '60px', opacity: 0.4 }}>woodwork</div>
+      <div className="village-craftsman flex flex-col items-center" style={{ left: '82%', animation: 'bobScene 2.3s infinite reverse' }}>
+        <div className="text-3xl md:text-5xl">👨🏽‍🔧🪵</div>
+        <div className="text-[10px] md:text-3xl text-amber-900 font-bold opacity-40 mt-1 md:mt-2">woodwork</div>
+      </div>
 
       {/* Scenery: Walking Animals */}
-      <div className="village-mural-animal text-6xl" style={{ animation: 'walkLeftScene 120s linear infinite' }}>🐘</div>
-      <div className="village-mural-animal text-5xl" style={{ animation: 'walkLeftScene 150s linear infinite', animationDelay: '-40s' }}>🐄</div>
-      <div className="village-mural-animal text-5xl" style={{ animation: 'walkLeftScene 180s linear infinite', animationDelay: '-110s' }}>🐄</div>
-      <div className="village-mural-animal text-4xl" style={{ animation: 'walkRightScene 60s linear infinite', animationDelay: '-20s', bottom: '25px' }}>🦌</div>
-      <div className="village-mural-animal text-5xl" style={{ animation: 'walkRightScene 90s linear infinite', animationDelay: '-70s', bottom: '15px' }}>🦌</div>
+      <div className="village-mural-animal text-3xl md:text-6xl" style={{ animation: 'walkLeftScene 120s linear infinite' }}>🐘</div>
+      <div className="village-mural-animal text-2xl md:text-5xl" style={{ animation: 'walkLeftScene 150s linear infinite', animationDelay: '-40s' }}>🐄</div>
+      <div className="village-mural-animal text-2xl md:text-5xl" style={{ animation: 'walkLeftScene 180s linear infinite', animationDelay: '-110s' }}>🐄</div>
+      <div className="village-mural-animal text-xl md:text-4xl" style={{ animation: 'walkRightScene 60s linear infinite', animationDelay: '-20s', bottom: '25px' }}>🦌</div>
+      <div className="village-mural-animal text-2xl md:text-5xl" style={{ animation: 'walkRightScene 90s linear infinite', animationDelay: '-70s', bottom: '15px' }}>🦌</div>
 
       {/* Swaying Grass Tufts */}
       {Array.from({ length: 20 }).map((_, i) => (

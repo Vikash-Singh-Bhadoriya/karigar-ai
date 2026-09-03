@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -10,6 +11,18 @@ import { CartProvider } from './contexts/CartContext';
 import CartDrawer from './components/CartDrawer';
 
 export default function App() {
+  useEffect(() => {
+    const splash = document.getElementById('splash-screen');
+    if (splash) {
+      // Ensure the splash screen is visible for at least 1.2s to look deliberate
+      setTimeout(() => {
+        splash.style.transition = 'opacity 0.6s ease';
+        splash.style.opacity = '0';
+        setTimeout(() => splash.remove(), 600); // Remove from DOM after fade
+      }, 1200); 
+    }
+  }, []);
+
   return (
     <CartProvider>
       <BrowserRouter>
