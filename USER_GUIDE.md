@@ -1,4 +1,8 @@
-# 🪷 KarigarAI Platform - User Guide
+<div align="center">
+  <img src="website/public/assets/brand/logo-full.png" alt="KarigarAI Logo" width="350" />
+  <h1>Platform User Guide</h1>
+</div>
+
 
 Welcome to **KarigarAI**, a digital bridge connecting rural Indian artisans with global buyers. This platform consists of two main experiences: an AI-powered Mobile App for artisans to list their crafts, and a modern Web Marketplace for buyers.
 
