@@ -65,45 +65,44 @@ export default function VillageScenery() {
       </svg>
 
       {/* Hoisted Indian Flag */}
-      <div className="absolute bottom-[10px] left-[2%] md:left-[5%] flex items-end" style={{ zIndex: 10 }}>
-        {/* Base + Pole container */}
-        <div className="flex flex-col items-center">
+      <div className="absolute bottom-[10px] left-[2%] md:left-[5%] flex flex-col items-center" style={{ zIndex: 10 }}>
+        <style>{`
+          @keyframes flutterFlagScene {
+            0%, 100% { transform: rotateY(0deg) skewY(-1deg); }
+            50% { transform: rotateY(20deg) skewY(2deg); }
+          }
+          .animate-flutter-scene {
+            animation: flutterFlagScene 2.5s ease-in-out infinite;
+            transform-origin: left center;
+            transform-style: preserve-3d;
+          }
+        `}</style>
+        
+        {/* Pole */}
+        <div className="w-1.5 md:w-2 h-32 md:h-48 bg-gradient-to-r from-gray-400 via-gray-100 to-gray-500 shadow-md relative flex justify-center">
           {/* Top Knob */}
-          <div className="w-2 h-2 md:w-3 md:h-3 bg-amber-500 rounded-full shadow-sm border border-amber-600 z-20 -mb-1 relative"></div>
-          {/* Pole */}
-          <div className="w-1 md:w-1.5 h-32 md:h-48 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400 border border-gray-400/50 z-10 shadow-md"></div>
-          {/* Platform Tier 1 */}
-          <div className="w-8 md:w-12 h-1.5 md:h-2 bg-gradient-to-b from-stone-400 to-stone-600 rounded-t-sm shadow-md"></div>
-          {/* Platform Tier 2 */}
-          <div className="w-12 md:w-16 h-1.5 md:h-2 bg-gradient-to-b from-stone-500 to-stone-700 rounded-t-sm shadow-xl"></div>
+          <div className="w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full shadow-sm border border-yellow-600 absolute -top-1.5 md:-top-2 z-20"></div>
+          
+          {/* Flag perfectly attached to the right edge of the pole */}
+          <div className="absolute top-1 md:top-2 left-full w-14 h-9 md:w-24 md:h-16" style={{ perspective: '400px', zIndex: 15, marginLeft: '-1px' }}>
+            <svg className="w-full h-full animate-flutter-scene drop-shadow-md overflow-hidden rounded-r-sm" viewBox="0 0 90 60" xmlns="http://www.w3.org/2000/svg">
+              <rect width="90" height="20" fill="#FF9933"/>
+              <rect y="20" width="90" height="20" fill="#FFFFFF"/>
+              <rect y="40" width="90" height="20" fill="#138808"/>
+              <g transform="translate(45,30)">
+                <circle r="8.5" fill="none" stroke="#000080" strokeWidth="1.5"/>
+                <circle r="1.5" fill="#000080"/>
+                {Array.from({length: 24}).map((_, i) => (
+                  <line key={i} x1="0" y1="0" x2="0" y2="8.5" stroke="#000080" strokeWidth="0.5" transform={`rotate(${i * 15})`} />
+                ))}
+              </g>
+            </svg>
+          </div>
         </div>
 
-        {/* The Flag attached to the top of the pole */}
-        <div className="absolute top-[3px] md:top-[4px] left-[6px] md:left-[8px] w-12 h-8 md:w-20 md:h-12" style={{ perspective: '200px', zIndex: 15 }}>
-          <style>{`
-            @keyframes flutterFlagScene {
-              0%, 100% { transform: rotateY(-10deg) rotateZ(1deg) skewY(-1deg); }
-              50% { transform: rotateY(10deg) rotateZ(-1deg) skewY(1deg); }
-            }
-            .animate-flutter-scene {
-              animation: flutterFlagScene 2.5s ease-in-out infinite;
-              transform-origin: left center;
-              transform-style: preserve-3d;
-            }
-          `}</style>
-          <svg className="w-full h-full animate-flutter-scene drop-shadow-lg rounded-[1px] overflow-hidden" viewBox="0 0 90 60" xmlns="http://www.w3.org/2000/svg">
-            <rect width="90" height="20" fill="#FF9933"/>
-            <rect y="20" width="90" height="20" fill="#FFFFFF"/>
-            <rect y="40" width="90" height="20" fill="#138808"/>
-            <g transform="translate(45,30)">
-              <circle r="8.5" fill="none" stroke="#000080" strokeWidth="1.5"/>
-              <circle r="1.5" fill="#000080"/>
-              {Array.from({length: 24}).map((_, i) => (
-                <line key={i} x1="0" y1="0" x2="0" y2="8.5" stroke="#000080" strokeWidth="0.5" transform={`rotate(${i * 15})`} />
-              ))}
-            </g>
-          </svg>
-        </div>
+        {/* Platform Base */}
+        <div className="w-10 md:w-14 h-2 md:h-3 bg-gradient-to-b from-stone-400 to-stone-600 rounded-t-sm shadow-md border-t border-stone-300"></div>
+        <div className="w-14 md:w-20 h-2 md:h-3 bg-gradient-to-b from-stone-500 to-stone-700 rounded-t-sm shadow-xl border-t border-stone-400"></div>
       </div>
 
       {/* Scenery: Trees & Peacocks */}
