@@ -64,6 +64,48 @@ export default function VillageScenery() {
         <path fill="currentColor" d="M985.66,92.83C906.67,72,823.78,31,743.84,14.19c-82.26-17.34-168.06-16.33-250.45.39-57.84,11.73-114,31.07-172,41.86A600.21,600.21,0,0,1,0,27.35V120H1200V95.8C1132.19,118.92,1055.71,111.31,985.66,92.83Z"></path>
       </svg>
 
+      {/* Hoisted Indian Flag */}
+      <div className="absolute bottom-[10px] left-[2%] md:left-[5%] flex items-end" style={{ zIndex: 10 }}>
+        {/* Base + Pole container */}
+        <div className="flex flex-col items-center">
+          {/* Top Knob */}
+          <div className="w-2 h-2 md:w-3 md:h-3 bg-amber-500 rounded-full shadow-sm border border-amber-600 z-20 -mb-1 relative"></div>
+          {/* Pole */}
+          <div className="w-1 md:w-1.5 h-32 md:h-48 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400 border border-gray-400/50 z-10 shadow-md"></div>
+          {/* Platform Tier 1 */}
+          <div className="w-8 md:w-12 h-1.5 md:h-2 bg-gradient-to-b from-stone-400 to-stone-600 rounded-t-sm shadow-md"></div>
+          {/* Platform Tier 2 */}
+          <div className="w-12 md:w-16 h-1.5 md:h-2 bg-gradient-to-b from-stone-500 to-stone-700 rounded-t-sm shadow-xl"></div>
+        </div>
+
+        {/* The Flag attached to the top of the pole */}
+        <div className="absolute top-[3px] md:top-[4px] left-[6px] md:left-[8px] w-12 h-8 md:w-20 md:h-12" style={{ perspective: '200px', zIndex: 15 }}>
+          <style>{`
+            @keyframes flutterFlagScene {
+              0%, 100% { transform: rotateY(-10deg) rotateZ(1deg) skewY(-1deg); }
+              50% { transform: rotateY(10deg) rotateZ(-1deg) skewY(1deg); }
+            }
+            .animate-flutter-scene {
+              animation: flutterFlagScene 2.5s ease-in-out infinite;
+              transform-origin: left center;
+              transform-style: preserve-3d;
+            }
+          `}</style>
+          <svg className="w-full h-full animate-flutter-scene drop-shadow-lg rounded-[1px] overflow-hidden" viewBox="0 0 90 60" xmlns="http://www.w3.org/2000/svg">
+            <rect width="90" height="20" fill="#FF9933"/>
+            <rect y="20" width="90" height="20" fill="#FFFFFF"/>
+            <rect y="40" width="90" height="20" fill="#138808"/>
+            <g transform="translate(45,30)">
+              <circle r="8.5" fill="none" stroke="#000080" strokeWidth="1.5"/>
+              <circle r="1.5" fill="#000080"/>
+              {Array.from({length: 24}).map((_, i) => (
+                <line key={i} x1="0" y1="0" x2="0" y2="8.5" stroke="#000080" strokeWidth="0.5" transform={`rotate(${i * 15})`} />
+              ))}
+            </g>
+          </svg>
+        </div>
+      </div>
+
       {/* Scenery: Trees & Peacocks */}
       <div className="village-mural-tree text-[4rem] md:text-[8rem]" style={{ left: '15%' }}>🌳</div>
       <div className="village-mural-tree text-[3rem] md:text-[6rem]" style={{ left: '50%', bottom: '25px' }}>🌲</div>
