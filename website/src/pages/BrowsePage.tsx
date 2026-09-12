@@ -152,15 +152,42 @@ export default function BrowsePage() {
         {/* Product Grid */}
         <main className="flex-1">
           <div className="flex items-center justify-between mb-6">
-            <p className="text-sm text-stone-500">
-              {total} product{total !== 1 ? 's' : ''} found
-            </p>
+            {loading ? (
+              <p className="text-sm text-stone-500 flex items-center gap-2">
+                <span className="inline-block w-3.5 h-3.5 border-2 border-amber-200 border-t-amber-600 rounded-full animate-spin" />
+                Loading products...
+              </p>
+            ) : (
+              <p className="text-sm text-stone-500">
+                {total} product{total !== 1 ? 's' : ''} found
+              </p>
+            )}
           </div>
 
           {loading ? (
-            <div className="text-center py-20">
-              <div className="inline-block w-10 h-10 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin" />
-              <p className="text-stone-500 mt-4">Loading products...</p>
+            <div
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+              role="status"
+              aria-live="polite"
+            >
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex flex-col bg-[#FFFCF8] rounded-2xl overflow-hidden shadow-md border border-amber-100 animate-pulse"
+                >
+                  <div className="aspect-[4/3] bg-stone-200" />
+                  <div className="p-5 flex flex-col gap-3 flex-grow">
+                    <div className="h-4 w-20 bg-stone-200 rounded-md" />
+                    <div className="h-5 w-3/4 bg-stone-200 rounded-md" />
+                    <div className="h-5 w-1/2 bg-stone-200 rounded-md" />
+                    <div className="mt-auto flex items-end justify-between pt-2">
+                      <div className="h-6 w-16 bg-amber-200 rounded-md" />
+                      <div className="h-4 w-20 bg-stone-200 rounded-md" />
+                    </div>
+                    <div className="h-10 w-full bg-stone-200 rounded-xl" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-20">
