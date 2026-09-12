@@ -18,6 +18,9 @@ import PrimaryButton from '@/components/PrimaryButton';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, radius, shadow } from '@/constants/colors';
 import { LANGUAGES } from '@/constants/mockData';
+import { INDIAN_LANGUAGES } from '@/constants/languages';
+import { useLanguage } from '@/context/LanguageContext';
+import AudioHelpButton from '@/components/AudioHelpButton';
 import { deleteLocalImage, persistLocalImage } from '@/services/imagePersistence';
 import type { Language } from '@/types/product';
 import {
@@ -38,7 +41,8 @@ interface PickedPhoto {
 
 export default function AddProductScreen() {
   const insets = useSafeAreaInsets();
-  const [selectedLang, setSelectedLang] = useState<Language>('हिंदी');
+  const { t, currentLanguage } = useLanguage();
+  const [selectedLang, setSelectedLang] = useState<Language>(currentLanguage.nativeName as Language);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [voiceError, setVoiceError] = useState('');
   const [photo, setPhoto] = useState<PickedPhoto | null>(null);
@@ -309,10 +313,11 @@ export default function AddProductScreen() {
             <View style={styles.voiceHeaderIcon}>
               <Text style={styles.voiceHeaderEmoji}>🎤</Text>
             </View>
-            <View>
-              <Text style={styles.voiceTitle}>बोलकर बताएं</Text>
-              <Text style={styles.voiceSub}>अपने प्रोडक्ट के बारे में</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.voiceTitle}>{t.tapToSpeak}</Text>
+              <Text style={styles.voiceSub}>अपने शिल्प के बारे में बताएं</Text>
             </View>
+            <AudioHelpButton helpTextKeyOrRaw={t.ttsVoicePrompt} size="sm" label="सुनें" />
           </View>
 
           <View style={styles.micStage}>
@@ -423,23 +428,37 @@ export default function AddProductScreen() {
           />
         </View>
 
-        {/* Language selector */}
+        {/* Language selector (All 22 Official Indian Languages + English) */}
         <View style={styles.langSection}>
-          <Text style={styles.langLabel}>भाषा चुनें</Text>
-          <View style={styles.langRow}>
-            {LANGUAGES.map((lang) => {
-              const active = selectedLang === lang;
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <Text style={styles.langLabel}>भाषा चुनें (22 भारतीय भाषाएं)</Text>
+            <Text style={{ fontSize: 11, color: colors.inkMuted, fontWeight: '700' }}>
+              चयनित: {selectedLang}
+            </Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.langRow, { paddingVertical: 4 }]}
+          >
+            {INDIAN_LANGUAGES.map((item) => {
+              const active = selectedLang === item.nativeName;
               return (
                 <Pressable
-                  key={lang}
-                  onPress={() => setSelectedLang(lang)}
-                  style={[styles.langChip, active && styles.langChipActive]}
+                  key={item.code}
+                  onPress={() => setSelectedLang(item.nativeName as Language)}
+                  style={[styles.langChip, active && styles.langChipActive, { minWidth: 70, alignItems: 'center' }]}
                 >
-                  <Text style={[styles.langText, active && styles.langTextActive]}>{lang}</Text>
+                  <Text style={[styles.langText, active && styles.langTextActive]}>
+                    {item.nativeName}
+                  </Text>
+                  <Text style={{ fontSize: 9, color: active ? colors.brandDark : colors.inkMuted, marginTop: 1 }}>
+                    {item.name}
+                  </Text>
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
         </View>
       </ScrollView>
 

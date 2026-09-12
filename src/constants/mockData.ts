@@ -3,6 +3,7 @@ import type {
   Product,
   SellingScope,
 } from '@/types/product';
+import { INDIAN_LANGUAGES } from './languages';
 
 export const IMAGES = {
   cottonBag:
@@ -92,7 +93,7 @@ export const HOME_STATS = [
   { value: '₹8,430', hindi: 'कमाई', accent: 'ok' as const },
 ];
 
-export const LANGUAGES: Language[] = ['हिंदी', 'मराठी', 'English'];
+export const LANGUAGES: Language[] = INDIAN_LANGUAGES.map((l) => l.nativeName as Language);
 
 export const PROCESSING_STEPS = [
   { icon: '📸', hindi: 'फोटो का विश्लेषण हो रहा है', en: 'Photo analyzed' },

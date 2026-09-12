@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
+import { useLanguage } from '@/context/LanguageContext';
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return (
@@ -14,6 +15,8 @@ function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
+
   return (
     <Tabs
       screenOptions={{
@@ -35,28 +38,28 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'होम',
+          title: t.tabHome,
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="products"
         options={{
-          title: 'प्रोडक्ट',
+          title: t.productsCount,
           tabBarIcon: ({ focused }) => <TabIcon emoji="👜" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="orders"
         options={{
-          title: 'ऑर्डर',
+          title: t.tabOrders,
           tabBarIcon: ({ focused }) => <TabIcon emoji="📦" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'प्रोफाइल',
+          title: t.tabProfile,
           tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
         }}
       />

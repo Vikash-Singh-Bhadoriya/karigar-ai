@@ -13,6 +13,20 @@ export interface ComparableProduct {
   url?: string;
 }
 
+export interface FairTradeBreakdown {
+  artisanDirectEarning: number;
+  artisanPercent: number;
+  materialCostEstimate: number;
+  materialPercent: number;
+  packagingLogisticsEstimate: number;
+  packagingPercent: number;
+  laborHoursEstimated: number;
+  hourlyWageBenchmark: number;
+  exportBenchmarkUSD: { min: number; max: number };
+  exploitationWarning?: string;
+  livingWageVerified: boolean;
+}
+
 export interface MarketPricing {
   currency: 'INR';
   marketAvailable: boolean;
@@ -26,4 +40,5 @@ export interface MarketPricing {
   recommendedPrice: number;
   explanation: string;
   available: boolean;
+  fairTrade?: FairTradeBreakdown;
 }

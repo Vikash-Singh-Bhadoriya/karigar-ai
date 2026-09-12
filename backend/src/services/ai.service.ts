@@ -14,10 +14,11 @@ import type {
   ProductInput,
   ProductState,
 } from '../types/product';
+import { resolveIndicLanguage } from './speech.service';
 
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
-type Lang = 'hi' | 'mr' | 'en';
+type Lang = 'hi' | 'mr' | 'en' | 'bn' | 'ta' | 'te' | 'gu' | string;
 
 const REQUIRED_FIELDS: ProductField[] = [
   'name',
@@ -236,14 +237,17 @@ function ensureTags(product: ProductState): ProductState {
   return { ...product, tags: tags.length ? tags : ['#Handmade', '#Artisan'] };
 }
 
-function buildFollowUpQuestion(field: ProductField, lang: Lang, isReask: boolean): string {
-  const base = FOLLOW_UP[field][lang];
+function buildFollowUpQuestion(field: ProductField, langInput: Lang, isReask: boolean): string {
+  const meta = resolveIndicLanguage(langInput);
+  const langKey = (meta.code in FOLLOW_UP[field] ? meta.code : 'hi') as 'hi' | 'mr' | 'en';
+  const base = FOLLOW_UP[field][langKey] || FOLLOW_UP[field].hi;
+
   if (isReask) {
-    if (lang === 'hi') return `कोई बात नहीं ${base}`;
-    if (lang === 'mr') return `काही हरकत नाही ${base}`;
-    return `No problem ${base}`;
+    if (meta.code === 'mr') return `काही हरकत नाही ${base}`;
+    if (meta.code === 'en') return `No problem ${base}`;
+    return `कोई बात नहीं ${base}`;
   }
-  const lead = { hi: 'बहुत बढ़िया!', mr: 'छान!', en: 'Great!' }[lang];
+  const lead = { hi: 'बहुत बढ़िया!', mr: 'छान!', en: 'Great!' }[langKey] || 'बहुत बढ़िया!';
   return `${lead} ${base}`;
 }
 

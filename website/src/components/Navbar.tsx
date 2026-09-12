@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../contexts/CartContext';
+import { useWebLanguage } from '../context/LanguageContext';
+import LanguageSelector from './LanguageSelector';
 
 const IndianFlag = ({ className = "w-6 h-4" }) => (
   <div className={`relative flex items-center justify-center ${className}`} style={{ perspective: '100px' }}>
@@ -36,6 +38,7 @@ export default function Navbar() {
   const [showViksitModal, setShowViksitModal] = useState(false);
   const location = useLocation();
   const { cart, setIsCartOpen } = useCart();
+  const { t } = useWebLanguage();
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const isActive = (path: string) =>
@@ -52,17 +55,17 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-xs sm:text-sm font-medium tracking-wide relative z-10">
           <div className="flex items-center gap-2">
             <span className="text-orange-300 animate-pulse">🪔</span>
-            <span>Empowering Rural Artisans</span>
+            <span>{t.empoweringArtisans}</span>
             <span className="hidden sm:inline text-amber-500/50">|</span>
-            <span className="hidden sm:inline">Preserving India's Heritage</span>
+            <span className="hidden sm:inline">{t.preservingHeritage}</span>
           </div>
           <div className="flex items-center gap-2 mt-1 sm:mt-0 font-semibold text-amber-200">
-            <span>A Step Towards</span>
+            <span>{t.stepTowards}</span>
             <button 
               onClick={() => setShowViksitModal(true)}
               className="bg-white/20 px-2 py-0.5 rounded-sm shadow-sm backdrop-blur-sm border border-white/10 flex items-center gap-1 hover:bg-white/30 transition-colors cursor-pointer active:scale-95"
             >
-              Viksit Bharat <IndianFlag className="w-5 h-[14px] ml-1 inline-block" />
+              {t.viksitBharat} <IndianFlag className="w-5 h-[14px] ml-1 inline-block" />
             </button>
           </div>
         </div>
@@ -87,15 +90,18 @@ export default function Navbar() {
             </Link>
 
             {/* Desktop Nav */}
-            <div className="hidden md:flex items-center gap-10">
+            <div className="hidden md:flex items-center gap-8">
               <Link to="/" className={isActive('/')}>
-                Home
+                {t.home}
               </Link>
               <Link to="/browse" className={isActive('/browse')}>
-                Browse Collection
+                {t.browse}
               </Link>
 
-              <div className="flex items-center gap-4 border-l border-amber-200 pl-4 ml-2">
+              <div className="flex items-center gap-3 border-l border-amber-200 pl-4 ml-1">
+                {/* Language Switcher Dropdown (National & Global Export) */}
+                <LanguageSelector />
+
                 {/* Cart Button */}
                 <button 
                   onClick={() => setIsCartOpen(true)}
@@ -111,7 +117,7 @@ export default function Navbar() {
 
                 <Link to="/browse" className="relative px-6 py-2.5 bg-gradient-to-r from-amber-700 to-orange-700 text-white text-sm font-semibold rounded-full shadow-lg shadow-amber-900/20 hover:shadow-amber-900/50 hover:-translate-y-1 transition-all duration-300 overflow-hidden group/btn">
                   <span className="relative z-10 flex items-center gap-2">
-                    Shop Now
+                    {t.shopNow}
                     <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
                   </span>
                   {/* Shimmer Effect */}
@@ -121,20 +127,23 @@ export default function Navbar() {
             </div>
 
             {/* Mobile Menu Button */}
-            <button
-              className="md:hidden p-2 text-amber-900 hover:bg-amber-100 rounded-lg transition-colors"
-              onClick={() => setMenuOpen(!menuOpen)}
-            >
-              {menuOpen ? (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
+            <div className="flex md:hidden items-center gap-2">
+              <LanguageSelector />
+              <button
+                className="p-2 text-amber-900 hover:bg-amber-100 rounded-lg transition-colors"
+                onClick={() => setMenuOpen(!menuOpen)}
+              >
+                {menuOpen ? (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Mobile Menu */}
@@ -145,21 +154,21 @@ export default function Navbar() {
                 className="block py-3 text-center font-medium text-amber-900 hover:bg-amber-50 rounded-lg"
                 onClick={() => setMenuOpen(false)}
               >
-                Home
+                {t.home}
               </Link>
               <Link
                 to="/browse"
                 className="block py-3 text-center font-medium text-amber-900 hover:bg-amber-50 rounded-lg mt-1"
                 onClick={() => setMenuOpen(false)}
               >
-                Browse Products
+                {t.browse}
               </Link>
               <Link
                 to="/browse"
                 className="block py-3 text-center font-bold text-white bg-gradient-to-r from-amber-700 to-orange-700 rounded-lg mt-3 shadow-md"
                 onClick={() => setMenuOpen(false)}
               >
-                Shop Now
+                {t.shopNow}
               </Link>
             </div>
           )}

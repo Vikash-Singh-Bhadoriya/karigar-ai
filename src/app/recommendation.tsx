@@ -8,6 +8,7 @@ import { colors, radius, shadow } from '@/constants/colors';
 import { useProductAnalysis } from '@/context/ProductAnalysisContext';
 import { formatPrice } from '@/context/productFlow';
 import { useMarketPricing } from '@/hooks/useMarketPricing';
+import AudioHelpButton from '@/components/AudioHelpButton';
 
 export default function RecommendationScreen() {
   const insets = useSafeAreaInsets();
@@ -118,6 +119,48 @@ export default function RecommendationScreen() {
             </View>
             <Text style={styles.priceInputPencil}>✏️</Text>
           </View>
+
+          {/* Engine #1: Fair-Trade Economic Living Wage Card */}
+          {pricing?.fairTrade && (
+            <View style={styles.fairTradeBox}>
+              <View style={styles.fairTradeHeader}>
+                <View style={styles.fairTradeBadge}>
+                  <Text style={styles.fairTradeBadgeText}>🛡️ फेयर ट्रेड गारंटी (Living Wage)</Text>
+                </View>
+                <AudioHelpButton
+                  helpTextKeyOrRaw={`यह मूल्य आपके ${pricing.fairTrade.laborHoursEstimated} घंटे के श्रम और सामग्री की लागत को ध्यान में रखकर तय किया गया है। इसमें से सीधे आपको ${inr(pricing.fairTrade.artisanDirectEarning)} मिलेंगे, जो आपके काम का उचित पारिश्रमिक है।`}
+                  size="sm"
+                />
+              </View>
+
+              <View style={styles.ftRow}>
+                <Text style={styles.ftLabel}>कारीगर की सीधी कमाई (74%):</Text>
+                <Text style={styles.ftValArtisan}>{inr(pricing.fairTrade.artisanDirectEarning)}</Text>
+              </View>
+
+              <View style={styles.ftRow}>
+                <Text style={styles.ftLabel}>कच्ची सामग्री लागत (16%):</Text>
+                <Text style={styles.ftVal}>{inr(pricing.fairTrade.materialCostEstimate)}</Text>
+              </View>
+
+              <View style={styles.ftRow}>
+                <Text style={styles.ftLabel}>पैकेजिंग व सुरक्षा (10%):</Text>
+                <Text style={styles.ftVal}>{inr(pricing.fairTrade.packagingLogisticsEstimate)}</Text>
+              </View>
+
+              <View style={styles.ftFooter}>
+                <Text style={styles.ftFooterText}>
+                  ⏱️ श्रम: {pricing.fairTrade.laborHoursEstimated} घंटे | 🌍 वैश्विक निर्यात: ${pricing.fairTrade.exportBenchmarkUSD.min}–${pricing.fairTrade.exportBenchmarkUSD.max}
+                </Text>
+              </View>
+
+              {pricing.fairTrade.exploitationWarning && (
+                <View style={styles.warningBox}>
+                  <Text style={styles.warningText}>⚠️ {pricing.fairTrade.exploitationWarning}</Text>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* "Why this price" — evidence-based explanation from the backend */}
           <Pressable
@@ -463,5 +506,77 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'center',
     marginBottom: 8,
+  },
+  fairTradeBox: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: radius.xl,
+    padding: 14,
+    marginTop: 14,
+    gap: 8,
+  },
+  fairTradeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  fairTradeBadge: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+  },
+  fairTradeBadgeText: {
+    color: '#166534',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  ftRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  ftLabel: {
+    color: '#374151',
+    fontSize: 13,
+  },
+  ftValArtisan: {
+    color: '#15803D',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  ftVal: {
+    color: '#4B5563',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  ftFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#DCFCE7',
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  ftFooterText: {
+    color: '#166534',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  warningBox: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: radius.md,
+    padding: 8,
+    marginTop: 4,
+  },
+  warningText: {
+    color: '#991B1B',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
   },
 });
