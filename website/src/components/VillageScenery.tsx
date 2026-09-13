@@ -67,18 +67,23 @@ export default function VillageScenery() {
       {/* Hoisted Indian Flag */}
       <div className="absolute bottom-[10px] left-[2%] md:left-[5%] flex flex-col items-center" style={{ zIndex: 10 }}>
         <style>{`
-          @keyframes smoothFlap {
-            0%, 100% { transform: rotateY(-15deg) rotateZ(1deg) skewY(-2deg); }
-            50% { transform: rotateY(15deg) rotateZ(-1deg) skewY(2deg); }
-          }
-          @keyframes rippleLight {
-            0% { background-position: -150% 0; }
-            100% { background-position: 250% 0; }
-          }
-          .animate-smooth-flap {
-            animation: smoothFlap 2.5s ease-in-out infinite;
-            transform-origin: left center;
-            transform-style: preserve-3d;
+          @keyframes waveClothStrip {
+            0%, 100% { 
+              transform: translateY(calc(var(--wave-factor) * 0px)) skewY(calc(var(--wave-factor) * 5deg)); 
+              filter: brightness(calc(1 - (var(--wave-factor) * 0.1)));
+            }
+            25% {
+              transform: translateY(calc(var(--wave-factor) * -3px)) skewY(0deg);
+              filter: brightness(1);
+            }
+            50% {
+              transform: translateY(calc(var(--wave-factor) * 0px)) skewY(calc(var(--wave-factor) * -5deg));
+              filter: brightness(calc(1 + (var(--wave-factor) * 0.15)));
+            }
+            75% {
+              transform: translateY(calc(var(--wave-factor) * 3px)) skewY(0deg);
+              filter: brightness(1);
+            }
           }
         `}</style>
         
@@ -87,32 +92,39 @@ export default function VillageScenery() {
           {/* Top Knob */}
           <div className="w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full shadow-sm border border-yellow-600 absolute -top-1.5 md:-top-2 z-20"></div>
           
-          {/* Single Continuous Wavy Cloth Flag */}
-          <div className="absolute top-1 md:top-2 left-full w-14 h-9 md:w-24 md:h-16" style={{ perspective: '500px', zIndex: 15, marginLeft: '-1px' }}>
-            <div className="w-full h-full animate-smooth-flap relative drop-shadow-md rounded-r-md overflow-hidden">
-              {/* Seamless SVG Flag */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 90 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0,0 Q45,3 90,0 V20 H0 Z" fill="#FF9933"/>
-                <path d="M0,20 H90 V40 H0 Z" fill="#FFFFFF"/>
-                <path d="M0,40 H90 V60 Q45,57 0,60 Z" fill="#138808"/>
-                <g transform="translate(45,30)">
-                  <circle r="8.5" fill="none" stroke="#000080" strokeWidth="1.5"/>
-                  <circle r="1.5" fill="#000080"/>
-                  {Array.from({length: 24}).map((_, j) => (
-                    <line key={j} x1="0" y1="0" x2="0" y2="8.5" stroke="#000080" strokeWidth="0.5" transform={`rotate(${j * 15})`} />
-                  ))}
-                </g>
-              </svg>
-              {/* Moving light/shadow overlay to simulate volumetric ripples */}
+          {/* Cloth-like Segmented Flag (6 vertical strips for realistic 3D waving) */}
+          <div className="absolute top-1 md:top-2 left-full flex" style={{ zIndex: 15, marginLeft: '-1px' }}>
+            {Array.from({ length: 6 }).map((_, i) => (
               <div 
-                className="absolute inset-0 opacity-60 mix-blend-overlay pointer-events-none"
-                style={{ 
-                  background: 'linear-gradient(90deg, rgba(0,0,0,0.1) 0%, rgba(255,255,255,0.6) 25%, rgba(0,0,0,0.3) 50%, rgba(255,255,255,0.6) 75%, rgba(0,0,0,0.1) 100%)',
-                  backgroundSize: '200% 100%',
-                  animation: 'rippleLight 1.5s linear infinite'
-                }}
-              ></div>
-            </div>
+                key={i} 
+                className={`w-[9px] h-[36px] md:w-[16px] md:h-[64px] relative overflow-hidden origin-left ${i === 5 ? 'rounded-r-sm md:rounded-r-md' : ''}`}
+                style={{
+                  '--wave-factor': i === 0 ? 0 : (i / 5),
+                  animation: 'waveClothStrip 1.2s ease-in-out infinite',
+                  animationDelay: `-${i * 0.2}s`
+                } as React.CSSProperties}
+              >
+                {/* The continuous SVG flag stretched and shifted */}
+                <div 
+                  className="absolute top-0 h-full w-[54px] md:w-[96px]" 
+                  style={{ left: `-${i * 100}%` }}
+                >
+                  <svg className="w-full h-full drop-shadow-sm" viewBox="0 0 90 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* Flag colors with slight dynamic curves on top and bottom to simulate hanging fabric */}
+                    <path d="M0,0 Q45,3 90,0 V20 H0 Z" fill="#FF9933"/>
+                    <path d="M0,20 H90 V40 H0 Z" fill="#FFFFFF"/>
+                    <path d="M0,40 H90 V60 Q45,57 0,60 Z" fill="#138808"/>
+                    <g transform="translate(45,30)">
+                      <circle r="8.5" fill="none" stroke="#000080" strokeWidth="1.5"/>
+                      <circle r="1.5" fill="#000080"/>
+                      {Array.from({length: 24}).map((_, j) => (
+                        <line key={j} x1="0" y1="0" x2="0" y2="8.5" stroke="#000080" strokeWidth="0.5" transform={`rotate(${j * 15})`} />
+                      ))}
+                    </g>
+                  </svg>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
