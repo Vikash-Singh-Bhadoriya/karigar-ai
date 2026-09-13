@@ -6,6 +6,7 @@ import {
 } from 'expo-audio';
 import type { AudioRecorder, RecorderState, RecordingOptions } from 'expo-audio';
 import type { Language } from '@/types/product';
+import { getLanguageByName, getLanguageByCode, DEFAULT_LANGUAGE } from '@/constants/languages';
 
 const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
 
@@ -44,30 +45,15 @@ function voicePerf(stage: string, fromMs?: number) {
 }
 
 export function toSpeechLocale(language: Language): string {
-  switch (language) {
-    case 'हिंदी':
-      return 'hi-IN';
-    case 'मराठी':
-      return 'mr-IN';
-    case 'English':
-      return 'en-IN';
-    default:
-      return 'hi-IN';
-  }
+  const langDef = getLanguageByName(language) || getLanguageByCode(language) || DEFAULT_LANGUAGE;
+  return langDef.speechLocale || 'hi-IN';
 }
 
 function languageHint(language: Language): string {
-  switch (language) {
-    case 'हिंदी':
-      return 'हिंदी';
-    case 'मराठी':
-      return 'मराठी';
-    case 'English':
-      return 'English';
-    default:
-      return 'हिंदी';
-  }
+  const langDef = getLanguageByName(language) || getLanguageByCode(language) || DEFAULT_LANGUAGE;
+  return langDef.nativeName || 'हिंदी';
 }
+
 
 export function requestRecordingPermissions() {
   return AudioModule.requestRecordingPermissionsAsync();

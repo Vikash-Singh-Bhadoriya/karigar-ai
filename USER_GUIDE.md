@@ -13,10 +13,6 @@ Welcome to **KarigarAI**, a digital bridge connecting rural Indian artisans with
 ### 🛍️ For Buyers (Website)
 * **Live Marketplace:** [https://karigar-ai-phi.vercel.app/](https://karigar-ai-phi.vercel.app/)
 
-### 📱 For Artisans (Mobile App)
-* **App Download Link:** `[INSERT_APP_DOWNLOAD_LINK_HERE]` 
-*(Note: Replace this placeholder with your Expo Go URL, Google Drive APK link, or App Store link)*
-
 ---
 
 ## 📱 2. Artisan App Guide (Seller Flow)

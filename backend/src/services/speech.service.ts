@@ -5,6 +5,7 @@ import {
   isTransientFailure,
   runGeminiWithFailover,
 } from '../config/gemini';
+import { transcribeWithBhashini } from '../config/bhashini';
 
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -32,73 +33,107 @@ export interface SpeechInput {
   language?: string;
 }
 
-export function normalizeSpeechLanguage(language?: string): string {
-  const l = (language ?? '').trim();
-  if (l === 'hi' || l === 'mr' || l === 'en') return l;
-  if (l.includes('मराठी')) return 'mr';
-  if (/en/i.test(l)) return 'en';
-  return 'hi';
+export interface IndicLangMeta {
+  code: string;
+  name: string;
+  nativeName: string;
+  bcp47: string;
+  script: string;
 }
 
-/** Maps a normalized language to a BCP-47 speech hint for Gemini. */
-export function speechLanguageCode(language?: string): string {
-  switch (normalizeSpeechLanguage(language)) {
-    case 'mr':
-      return 'mr-IN';
-    case 'en':
-      return 'en-IN';
-    case 'hi':
-    default:
-      return 'hi-IN';
+export const INDIC_LANGUAGES: Record<string, IndicLangMeta> = {
+  hi: { code: 'hi', name: 'Hindi', nativeName: 'हिंदी', bcp47: 'hi-IN', script: 'Devanagari' },
+  bn: { code: 'bn', name: 'Bengali', nativeName: 'বাংলা', bcp47: 'bn-IN', script: 'Bengali' },
+  mr: { code: 'mr', name: 'Marathi', nativeName: 'मराठी', bcp47: 'mr-IN', script: 'Devanagari' },
+  te: { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', bcp47: 'te-IN', script: 'Telugu' },
+  ta: { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', bcp47: 'ta-IN', script: 'Tamil' },
+  gu: { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી', bcp47: 'gu-IN', script: 'Gujarati' },
+  kn: { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ', bcp47: 'kn-IN', script: 'Kannada' },
+  ml: { code: 'ml', name: 'Malayalam', nativeName: 'മലയാളം', bcp47: 'ml-IN', script: 'Malayalam' },
+  or: { code: 'or', name: 'Odia', nativeName: 'ଓଡ଼ିଆ', bcp47: 'or-IN', script: 'Odia' },
+  pa: { code: 'pa', name: 'Punjabi', nativeName: 'ਪੰਜਾਬੀ', bcp47: 'pa-IN', script: 'Gurmukhi' },
+  as: { code: 'as', name: 'Assamese', nativeName: 'অসমীয়া', bcp47: 'as-IN', script: 'Bengali-Assamese' },
+  ur: { code: 'ur', name: 'Urdu', nativeName: 'اردو', bcp47: 'ur-IN', script: 'Perso-Arabic' },
+  ks: { code: 'ks', name: 'Kashmiri', nativeName: 'कश्मीरी / كٲشُر', bcp47: 'ks-IN', script: 'Perso-Arabic / Devanagari' },
+  kok: { code: 'kok', name: 'Konkani', nativeName: 'कोंकणी', bcp47: 'kok-IN', script: 'Devanagari' },
+  mai: { code: 'mai', name: 'Maithili', nativeName: 'मैथिली', bcp47: 'mai-IN', script: 'Devanagari' },
+  brx: { code: 'brx', name: 'Bodo', nativeName: 'बर\'', bcp47: 'brx-IN', script: 'Devanagari' },
+  doi: { code: 'doi', name: 'Dogri', nativeName: 'डोगरी', bcp47: 'doi-IN', script: 'Devanagari' },
+  mni: { code: 'mni', name: 'Manipuri', nativeName: 'মৈতৈলোন্', bcp47: 'mni-IN', script: 'Meitei Mayek / Bengali' },
+  ne: { code: 'ne', name: 'Nepali', nativeName: 'नेपाली', bcp47: 'ne-IN', script: 'Devanagari' },
+  sa: { code: 'sa', name: 'Sanskrit', nativeName: 'संस्कृतम्', bcp47: 'sa-IN', script: 'Devanagari' },
+  sat: { code: 'sat', name: 'Santali', nativeName: 'ᱥᱟᱱᱛᱟᱲᱤ', bcp47: 'sat-IN', script: 'Ol Chiki' },
+  sd: { code: 'sd', name: 'Sindhi', nativeName: 'سنڌي / सिन्धी', bcp47: 'sd-IN', script: 'Perso-Arabic / Devanagari' },
+  en: { code: 'en', name: 'English', nativeName: 'English', bcp47: 'en-IN', script: 'Latin' },
+};
+
+export function resolveIndicLanguage(input?: string): IndicLangMeta {
+  const raw = (input ?? '').trim().toLowerCase();
+  if (!raw) return INDIC_LANGUAGES.hi;
+
+  // Direct code match
+  if (INDIC_LANGUAGES[raw]) return INDIC_LANGUAGES[raw];
+
+  // Search by code, english name, or native script
+  for (const meta of Object.values(INDIC_LANGUAGES)) {
+    if (
+      meta.code.toLowerCase() === raw ||
+      meta.name.toLowerCase() === raw ||
+      meta.nativeName.toLowerCase() === raw ||
+      raw.includes(meta.name.toLowerCase()) ||
+      raw.includes(meta.nativeName.toLowerCase())
+    ) {
+      return meta;
+    }
   }
+
+  return INDIC_LANGUAGES.hi;
+}
+
+export function normalizeSpeechLanguage(language?: string): string {
+  return resolveIndicLanguage(language).code;
+}
+
+/** Maps a normalized language to a BCP-47 speech hint for Gemini / STT. */
+export function speechLanguageCode(language?: string): string {
+  return resolveIndicLanguage(language).bcp47;
 }
 
 /**
  * Builds the system instruction for a transcription request, driven by the
  * user-selected language (authoritative). It pins both the language to
  * transcribe and its required output script so Gemini never auto-romanizes or
- * auto-translates Hindi/Marathi, and never translates English into another
+ * auto-translates Indic speech, and never translates English into another
  * language. Proper nouns / brand names are kept in the faithful spoken script.
  */
-function buildSpeechSystemInstruction(lang: string): string {
+function buildSpeechSystemInstruction(meta: IndicLangMeta): string {
   const verbatimRules = [
-    'You are a verbatim speech-to-text transcription engine.',
+    'You are a verbatim speech-to-text transcription engine for Indian regional languages.',
     'Transcribe EXACTLY and ONLY what the speaker says in the audio. Do not add, remove, correct, or rephrase anything.',
     'Do NOT summarize. Do NOT paraphrase. Do NOT translate. Do NOT transliterate. Do NOT romanize.',
     'Return ONLY the transcription text — no commentary, no quotes, no punctuation additions, no markdown.',
     'Preserve numbers, prices, product names, and proper noun / brand names exactly as spoken.',
   ];
 
-  if (lang === 'mr') {
+  if (meta.code === 'en') {
     return [
       ...verbatimRules,
-      'The user explicitly selected MARATHI. Transcribe the audio as MARATHI.',
-      'Write Marathi using DEVANAGARI script. Never convert Marathi into Latin/Roman characters.',
-      'Never translate Marathi into English or Hindi.',
-      'If the speaker incidentally uses an English technical/product word while speaking Marathi, keep that English word in Latin script and write the surrounding Marathi in Devanagari.',
+      'The user explicitly selected ENGLISH. Transcribe the audio as ENGLISH in Latin script.',
+      'Do NOT translate English into Hindi, Marathi, Tamil, or any other language.',
+      'If the speaker incidentally uses an Indian craft/cultural word while speaking English, write that word phonetically or in its authentic form.',
     ].join('\n');
   }
 
-  if (lang === 'en') {
-    return [
-      ...verbatimRules,
-      'The user explicitly selected ENGLISH. Transcribe the audio as ENGLISH.',
-      'Write English using LATIN script.',
-      'Do NOT translate English into Hindi, Marathi, or any other language.',
-      'If the speaker incidentally uses a Hindi/Marathi word while speaking English, keep that word in Devanagari and the surrounding English in Latin.',
-    ].join('\n');
-  }
-
-  // Default / Hindi
   return [
     ...verbatimRules,
-    'The user explicitly selected HINDI. Transcribe the audio as HINDI.',
-    'Write Hindi using DEVANAGARI script. Never convert Hindi into Latin/Roman/Hinglish characters.',
-    'Never translate Hindi into English.',
-    'Keep proper nouns and brand names in their faithful spoken Hindi phonetic Devanagari form (e.g. "एसर के लैपटॉप", NOT "Acer ka Laptop").',
-    'If the speaker naturally uses an English technical/product word while speaking Hindi, keep that English term in Latin script and write the surrounding Hindi in Devanagari (e.g. "ये handmade cotton bag है", NOT "ye handmade cotton bag hai").',
+    `The user explicitly selected ${meta.name.toUpperCase()} (${meta.nativeName}). Transcribe the audio strictly as ${meta.name.toUpperCase()}.`,
+    `Write ${meta.name} using ${meta.script.toUpperCase()} script. Never convert ${meta.name} into Latin/Roman/English characters.`,
+    `Never translate ${meta.name} into English, Hindi, or any other language.`,
+    `Keep proper nouns, artisan craft terms, and brand names in their faithful spoken phonetic form.`,
+    `If the speaker naturally uses an English technical/product word while speaking ${meta.name}, keep that English term in Latin script and write the surrounding ${meta.name} in ${meta.script} script.`,
   ].join('\n');
 }
+
 
 export function mimeFromAudioName(name: string): string {
   const ext = path.extname(name).toLowerCase();
@@ -148,21 +183,26 @@ export async function transcribeAudio(input: SpeechInput): Promise<string> {
     );
   }
 
-  const lang = normalizeSpeechLanguage(input.language);
-  const languageName = { hi: 'Hindi', mr: 'Marathi', en: 'English' }[lang];
-  const languageCode = speechLanguageCode(input.language);
+  const meta = resolveIndicLanguage(input.language);
+  const languageName = meta.name;
+  const languageCode = meta.bcp47;
 
-  // The user-selected language is AUTHORITATIVE. It must drive both the
-  // transcription language and the required output script — never depend on
-  // Gemini auto-inferring the language/script. `speechConfig.languageCode`
-  // (e.g. hi-IN) only communicates the LANGUAGE, not the SCRIPT; without an
-  // explicit per-language script mandate Gemini still defaults to Latin /
-  // Hinglish for Hindi/Marathi audio. The systemInstruction is built from the
-  // selected language so it pins the language + script together and forbids
-  // translation/transliteration/romanization/normalization.
-  const systemInstruction = buildSpeechSystemInstruction(lang);
+  // The user-selected language is AUTHORITATIVE. It drives both the
+  // transcription language and the required output script for all 22 Indian languages.
+  const systemInstruction = buildSpeechSystemInstruction(meta);
 
   const run = async (): Promise<string> => {
+    // 1. Primary Engine: Digital India Bhashini (NLTM) ASR (if configured)
+    const bhashiniResult = await transcribeWithBhashini(
+      input.audio.toString('base64'),
+      meta.code
+    );
+    if (bhashiniResult) {
+      console.log(`[SPEECH] successfully transcribed via Bhashini DPI for ${meta.name}`);
+      return bhashiniResult;
+    }
+
+    // 2. Secondary Engine: Gemini Multimodal Audio (Cloud Fallback)
     const model = getSpeechModel();
     try {
       return await runGeminiWithFailover('speech', async (apiKey) => {
