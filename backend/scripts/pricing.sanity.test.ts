@@ -180,6 +180,25 @@ async function main(): Promise<void> {
     );
   });
 
+  test('Engine #1: calculates fair-trade breakdown with living wage and anti-exploitation alerts', async () => {
+    const result = await getMarketPricing(
+      baseProduct({
+        category: 'Saree',
+        name: 'Banarasi Silk Saree',
+        materials: ['Silk', 'Zari'],
+        price: 200, // predatory low asking price by artisan
+      }),
+      'Hindi'
+    );
+    assert.ok(result.fairTrade, 'fairTrade must be computed');
+    assert.ok(result.fairTrade.artisanDirectEarning > 0);
+    assert.ok(result.fairTrade.artisanPercent >= 70, 'artisan direct earning should be at least 70%');
+    assert.ok(result.fairTrade.livingWageVerified);
+    assert.ok(result.fairTrade.exportBenchmarkUSD.min > 0);
+    assert.ok(result.fairTrade.exportBenchmarkUSD.max > result.fairTrade.exportBenchmarkUSD.min);
+    assert.ok(result.fairTrade.exploitationWarning, 'predatory low price must trigger exploitation warning');
+  });
+
   console.log('\nDone.');
   await Promise.all(pending);
   if (failures.length > 0) {

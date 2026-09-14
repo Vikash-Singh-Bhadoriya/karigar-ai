@@ -21,7 +21,31 @@ export interface StatItem {
   dot?: boolean;
 }
 
-export type Language = 'हिंदी' | 'मराठी' | 'English';
+export type Language =
+  | 'हिंदी'
+  | 'मराठी'
+  | 'English'
+  | 'বাংলা'
+  | 'తెలుగు'
+  | 'தமிழ்'
+  | 'ગુજરાતી'
+  | 'ಕನ್ನಡ'
+  | 'മലയാളം'
+  | 'ଓଡ଼ିଆ'
+  | 'ਪੰਜਾਬੀ'
+  | 'অসমীয়া'
+  | 'اردو'
+  | 'कश्मीरी / كٲشُر'
+  | 'कोंकणी'
+  | 'मैथिली'
+  | "बर'"
+  | 'डोगरी'
+  | 'মৈতৈলোন্'
+  | 'नेपाली'
+  | 'संस्कृतम्'
+  | 'ᱥᱟᱱᱛᱟᱲᱤ'
+  | 'سنڌي / सिन्धी'
+  | (string & {});
 
 export type SellingScope = 'local' | 'states' | 'india';
 

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { Product } from '../types';
 import { getImageUrl } from '../api/client';
 import { useCart } from '../contexts/CartContext';
+import { useWebLanguage } from '../context/LanguageContext';
 
 function formatPrice(price: number | null): string {
   if (price == null) return '—';
@@ -10,12 +11,13 @@ function formatPrice(price: number | null): string {
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
+  const { t, translateCategory, translateProductTitle } = useWebLanguage();
 
   return (
     <div className="group flex flex-col bg-[#FFFCF8] rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 border border-amber-100 hover:border-amber-300 relative h-full">
       {/* Handcrafted Badge */}
       <div className="absolute top-3 right-3 z-20 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full shadow-sm border border-amber-100 flex items-center gap-1.5 opacity-0 translate-y-[-10px] group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 pointer-events-none">
-        <span className="text-[10px] uppercase font-bold tracking-widest text-amber-800">Authentic</span>
+        <span className="text-[10px] uppercase font-bold tracking-widest text-amber-800">{t.authenticBadge}</span>
         <span className="text-xs">✨</span>
       </div>
 
@@ -35,31 +37,34 @@ export default function ProductCard({ product }: { product: Product }) {
           🪷
         </div>
         
-        <div className="flex items-center gap-2 mb-3 relative z-10">
+        <div className="flex items-center gap-2 mb-3 relative z-10 flex-wrap">
           {product.category && (
             <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-amber-100/80 text-amber-900 border border-amber-200/50">
-              {product.category}
+              {translateCategory(product.category)}
             </span>
           )}
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center gap-1">
+            <span>🛡️</span> Fair-Trade
+          </span>
         </div>
         
         <Link to={`/product/${product.id}`}>
           <h3 className="font-serif text-lg font-bold text-stone-800 line-clamp-2 mb-4 group-hover:text-amber-700 transition-colors relative z-10">
-            {product.name}
+            {translateProductTitle(product.name)}
           </h3>
         </Link>
         
         <div className="mt-auto flex flex-col gap-4 relative z-10">
           <div className="flex items-end justify-between">
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-0.5">Price</span>
+              <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-0.5">{t.priceLabel}</span>
               <span className="text-xl font-bold text-amber-800 drop-shadow-sm">
                 {formatPrice(product.price)}
               </span>
             </div>
             {product.artisan_name && (
               <div className="flex flex-col items-end text-right">
-                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-0.5">Artisan</span>
+                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-0.5">{t.artisanLabel}</span>
                 <span className="text-sm text-stone-600 font-medium italic">
                   {product.artisan_name}
                 </span>
@@ -70,9 +75,9 @@ export default function ProductCard({ product }: { product: Product }) {
           {/* Add to Cart Button */}
           <button 
             onClick={() => addToCart(product)}
-            className="w-full py-2.5 bg-amber-100/50 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-200 hover:border-amber-600 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-amber-100/50 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-200 hover:border-amber-600 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
           >
-            <span className="text-lg">🛒</span> Add to Cart
+            <span className="text-lg">🛒</span> {t.addToCart}
           </button>
         </div>
       </div>

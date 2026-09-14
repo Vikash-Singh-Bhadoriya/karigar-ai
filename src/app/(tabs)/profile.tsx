@@ -1,10 +1,15 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View, Modal, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, shadow } from '@/constants/colors';
 import { IMAGES, PROFILE_INFO, PROFILE_STATS } from '@/constants/mockData';
+import { useLanguage } from '@/context/LanguageContext';
+import { INDIAN_LANGUAGES } from '@/constants/languages';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const { currentLanguage, setLanguage, t } = useLanguage();
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   return (
     <View style={styles.container}>
       <ScrollView
@@ -75,18 +80,79 @@ export default function ProfileScreen() {
         </View>
 
         {/* Language preference */}
-        <View style={styles.langCard}>
+        <Pressable 
+          style={styles.langCard}
+          onPress={() => setIsLangModalOpen(true)}
+        >
           <View style={styles.infoRow}>
             <View style={styles.infoIcon}>
               <Text style={styles.infoIconText}>🗣️</Text>
             </View>
             <View style={styles.infoText}>
-              <Text style={styles.infoHindi}>भाषा</Text>
-              <Text style={styles.infoValue}>हिंदी (Hindi)</Text>
+              <Text style={styles.infoHindi}>भाषा (App Language)</Text>
+              <Text style={styles.infoValue}>{currentLanguage.nativeName} ({currentLanguage.name})</Text>
             </View>
             <Text style={styles.chevron}>›</Text>
           </View>
-        </View>
+        </Pressable>
+
+        {/* 22 Official Languages Modal */}
+        <Modal
+          visible={isLangModalOpen}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setIsLangModalOpen(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}>
+              <View style={styles.modalHeader}>
+                <View>
+                  <Text style={styles.modalTitle}>भाषा चुनें (22 भारतीय भाषाएं)</Text>
+                  <Text style={styles.modalSub}>Select your preferred native language</Text>
+                </View>
+                <TouchableOpacity 
+                  onPress={() => setIsLangModalOpen(false)}
+                  style={styles.closeBtn}
+                >
+                  <Text style={styles.closeBtnText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView 
+                style={styles.modalList}
+                showsVerticalScrollIndicator={false}
+              >
+                {INDIAN_LANGUAGES.map((item) => {
+                  const isSelected = item.code === currentLanguage.code;
+                  return (
+                    <TouchableOpacity
+                      key={item.code}
+                      style={[styles.langItem, isSelected && styles.langItemSelected]}
+                      onPress={() => {
+                        setLanguage(item);
+                        setIsLangModalOpen(false);
+                      }}
+                    >
+                      <View>
+                        <Text style={[styles.langItemNative, isSelected && styles.langItemTextActive]}>
+                          {item.nativeName}
+                        </Text>
+                        <Text style={styles.langItemEnglish}>
+                          {item.name} {item.craftHub ? `• ${item.craftHub}` : ''}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <View style={styles.checkBadge}>
+                          <Text style={styles.checkBadgeText}>✓</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         {/* Helper */}
         <Pressable style={styles.helper}>
@@ -301,5 +367,93 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
     fontSize: 14,
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(28, 18, 8, 0.65)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  modalSub: {
+    fontSize: 12,
+    color: colors.inkMuted,
+    marginTop: 2,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.inkMuted,
+  },
+  modalList: {
+    marginBottom: 10,
+  },
+  langItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  langItemSelected: {
+    backgroundColor: colors.surface,
+    borderBottomColor: 'transparent',
+  },
+  langItemNative: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  langItemTextActive: {
+    color: colors.brandDark,
+  },
+  langItemEnglish: {
+    fontSize: 11,
+    color: colors.inkMuted,
+    marginTop: 2,
+  },
+  checkBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.ok,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkBadgeText: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: 'bold',
   },
 });

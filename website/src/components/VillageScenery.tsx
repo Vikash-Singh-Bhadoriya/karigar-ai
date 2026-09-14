@@ -64,6 +64,75 @@ export default function VillageScenery() {
         <path fill="currentColor" d="M985.66,92.83C906.67,72,823.78,31,743.84,14.19c-82.26-17.34-168.06-16.33-250.45.39-57.84,11.73-114,31.07-172,41.86A600.21,600.21,0,0,1,0,27.35V120H1200V95.8C1132.19,118.92,1055.71,111.31,985.66,92.83Z"></path>
       </svg>
 
+      {/* Hoisted Indian Flag */}
+      <div className="absolute bottom-[10px] left-[2%] md:left-[5%] flex flex-col items-center" style={{ zIndex: 10 }}>
+        <style>{`
+          @keyframes waveClothStrip {
+            0%, 100% { 
+              transform: translateY(calc(var(--wave-factor) * 0px)) skewY(calc(var(--wave-factor) * 5deg)); 
+              filter: brightness(calc(1 - (var(--wave-factor) * 0.1)));
+            }
+            25% {
+              transform: translateY(calc(var(--wave-factor) * -3px)) skewY(0deg);
+              filter: brightness(1);
+            }
+            50% {
+              transform: translateY(calc(var(--wave-factor) * 0px)) skewY(calc(var(--wave-factor) * -5deg));
+              filter: brightness(calc(1 + (var(--wave-factor) * 0.15)));
+            }
+            75% {
+              transform: translateY(calc(var(--wave-factor) * 3px)) skewY(0deg);
+              filter: brightness(1);
+            }
+          }
+        `}</style>
+        
+        {/* Pole */}
+        <div className="w-1.5 md:w-2 h-32 md:h-48 bg-gradient-to-r from-gray-400 via-gray-100 to-gray-500 shadow-md relative flex justify-center">
+          {/* Top Knob */}
+          <div className="w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full shadow-sm border border-yellow-600 absolute -top-1.5 md:-top-2 z-20"></div>
+          
+          {/* Cloth-like Segmented Flag (6 vertical strips for realistic 3D waving) */}
+          <div className="absolute top-1 md:top-2 left-full flex" style={{ zIndex: 15, marginLeft: '-1px' }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div 
+                key={i} 
+                className={`w-[9px] h-[36px] md:w-[16px] md:h-[64px] relative overflow-hidden origin-left ${i === 5 ? 'rounded-r-sm md:rounded-r-md' : ''}`}
+                style={{
+                  '--wave-factor': i === 0 ? 0 : (i / 5),
+                  animation: 'waveClothStrip 1.2s ease-in-out infinite',
+                  animationDelay: `-${i * 0.2}s`
+                } as React.CSSProperties}
+              >
+                {/* The continuous SVG flag stretched and shifted */}
+                <div 
+                  className="absolute top-0 h-full w-[54px] md:w-[96px]" 
+                  style={{ left: `-${i * 100}%` }}
+                >
+                  <svg className="w-full h-full drop-shadow-sm" viewBox="0 0 90 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* Flag colors with slight dynamic curves on top and bottom to simulate hanging fabric */}
+                    <path d="M0,0 Q45,3 90,0 V20 H0 Z" fill="#FF9933"/>
+                    <path d="M0,20 H90 V40 H0 Z" fill="#FFFFFF"/>
+                    <path d="M0,40 H90 V60 Q45,57 0,60 Z" fill="#138808"/>
+                    <g transform="translate(45,30)">
+                      <circle r="8.5" fill="none" stroke="#000080" strokeWidth="1.5"/>
+                      <circle r="1.5" fill="#000080"/>
+                      {Array.from({length: 24}).map((_, j) => (
+                        <line key={j} x1="0" y1="0" x2="0" y2="8.5" stroke="#000080" strokeWidth="0.5" transform={`rotate(${j * 15})`} />
+                      ))}
+                    </g>
+                  </svg>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Platform Base */}
+        <div className="w-10 md:w-14 h-2 md:h-3 bg-gradient-to-b from-stone-400 to-stone-600 rounded-t-sm shadow-md border-t border-stone-300"></div>
+        <div className="w-14 md:w-20 h-2 md:h-3 bg-gradient-to-b from-stone-500 to-stone-700 rounded-t-sm shadow-xl border-t border-stone-400"></div>
+      </div>
+
       {/* Scenery: Trees & Peacocks */}
       <div className="village-mural-tree text-[4rem] md:text-[8rem]" style={{ left: '15%' }}>🌳</div>
       <div className="village-mural-tree text-[3rem] md:text-[6rem]" style={{ left: '50%', bottom: '25px' }}>🌲</div>
